@@ -1,14 +1,14 @@
 '''
 This file contains high level helper functions for 
 the kumpooterBision part of the project.
+
+Be very careful with the cordinate system since computer vision corrdinate system 
+is different from the robot coordinate system.
 '''
 
 import cv2 as cv
 import numpy as np
 import os
-
-print("Test")
-
 
 def get_image():
     '''
@@ -29,17 +29,18 @@ def get_test_frame():
 
 def get_robot_points():
     # These are hardcoded robot points as follows
-    #             2               #
-    #          1     3            #
-    #                             #
-    #                             #
-    #                             #
-    #    0                 4      #
-    #                             #
-    #                             #
+    # -----> +x                    #
+    # |   0                 4      #
+    # |                            #
+    # |                            #
+    # v                            #
+    # +y        1     3            #
+    #              2               #
+    #                              #
+    #                              #
 
     # point 0 is at 0,0
-    # Points are (x,y) in *CARTESIAN* coordinates, not stupid KumpooterBision coordinates
+    # Points are (x,y) in Computer Vision Coordinates
     # Points are in mm
     LED_0 = (0.0,0.0)
     LED_1 = (23.0, 67.16)
@@ -104,21 +105,55 @@ def apply_transformation_matrix(img, transformation_matrix):
 '''
 Calculate robot position from LED positions based on estimateAffinePartial2D
 '''
-
 def get_robot_affine_transform(robot_template_points, robot_cv_points):
-    # print("robot_template_points", robot_template_points, np.shape(robot_template_points))
-    # print("robot_cv_points", robot_cv_points, np.shape(robot_cv_points))
-    return cv.estimateAffinePartial2D(robot_cv_points, robot_template_points)
+    # Try all transform combinations since there's an ordering invariant and the order of the points is not known
+    from itertools import permutations
+    permus = list(permutations(robot_cv_points)) # TODO: setify this for speed
 
+    best_transform = None
+    most_inliers = -1
+
+    for p in permus:
+        transform, inliers = cv.estimateAffinePartial2D(np.array(p), robot_template_points) #TODO: there are other params like condience and refine iters that can make this better
+        if np.count_nonzero(inliers) > most_inliers:
+            best_transform = transform
+            most_inliers = np.count_nonzero(inliers)
+
+    print("Best transform", best_transform)
+    print("Most inliers", most_inliers)
+
+    return best_transform, most_inliers
+
+def get_robot_coordinates_from_transformation_matrix(transformation_matrix):
+    '''
+    This function returns the robot coordinates from the transformation matrix.
+    '''
+    # reference material
+    # https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html#scipy.spatial.transform.Rotation
+    # https://gamedev.stackexchange.com/questions/50963/how-to-extract-euler-angles-from-transformation-matrix
+
+    rotation_degrees = np.arctan2(transformation_matrix[1,0], transformation_matrix[0,0]) * 180 / np.pi
+    rotation_radians = np.arctan2(transformation_matrix[1,0], transformation_matrix[0,0])
+    position_x = transformation_matrix[0,2]
+    position_y = transformation_matrix[1,2]
+
+    return rotation_degrees, rotation_radians, position_x, position_y
+
+def get_robot_coordinates_wrt_robot_center_and_robot_coordinate_system(robot_coordinates, robot_centering_translation_matrix):
+    '''
+    This function returns the robot coordinates with respect to the robot center.
+    '''
+
+    # TODO after confirming what coordinate system the mapping algorithm will use
+
+    return None
 
 ''' 
 Main function
 '''
 if __name__ == "__main__":
-    # cv.imshow("Test", get_test_frame())
-    # cv.waitKey(0)
-
-    # debugging HSV values
+    # debugging HSV values for the test_frame
     green_rgb = np.uint8([[[0, 255, 0]]])
     green_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
     # print(green_hsv)
@@ -127,19 +162,22 @@ if __name__ == "__main__":
     lower = (int(green_hsv[0]) - h_buffer, int(green_hsv[1]) - s_buffer , 0)
     upper = (int(green_hsv[0]) + h_buffer, int(green_hsv[1]) + s_buffer , 255)
 
+    # HSV is being fucky due to blown out highlights, so hardcode values for testing
     lower = (0, 0, 250)
     upper = (255, 255, 255)
 
-    masked_img, center, num_of_centers = extract_LED_positions(get_test_frame(), lower, upper)
+    masked_img, centers, num_of_centers = extract_LED_positions(get_test_frame(), lower, upper)
+    transform, most_inliers = get_robot_affine_transform(np.array(get_robot_points()), centers)
+    robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
 
-    # cv.imshow("Extracted", masked_img)
-    # cv.waitKey(0)
-
-    transform, _ = get_robot_affine_transform(np.array(get_robot_points()), np.array(center))
-    print(transform)
+    print("Robot rotation (deg)", robot_rotation_deg)
+    print("Robot position x", robot_pos_x)
+    print("Robot position y", robot_pos_y)
 
     test_transformed_image = apply_transformation_matrix(get_test_frame(), transform)
 
     cv.imshow("Test", test_transformed_image)
+    cv.waitKey(0)
+    cv.imshow("Test2", get_test_frame())
     cv.waitKey(0)
     
