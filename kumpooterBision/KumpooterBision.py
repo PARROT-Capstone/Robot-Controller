@@ -7,6 +7,7 @@ is different from the robot coordinate system.
 '''
 
 from dis import code_info
+from turtle import position
 import cv2 as cv
 import numpy as np
 import os
@@ -68,7 +69,7 @@ def extract_LED_positions(img, color_filter_lower_bound, color_filter_upper_boun
     img_filtered = cv.bitwise_and(img, img, mask=mask)
 
     # erode and dilate to remove noise
-    kernel = np.ones((9,9),np.uint8)
+    kernel = np.ones((5,5),np.uint8)
     img_filtered = cv.erode(img_filtered,kernel,iterations = 1)
     img_filtered = cv.dilate(img_filtered,kernel,iterations = 1)
 
@@ -122,6 +123,13 @@ def get_robot_affine_transform(robot_template_points, robot_cv_points):
             if np.count_nonzero(inliers) > most_inliers:
                 best_transform = transform
                 most_inliers = np.count_nonzero(inliers)
+
+        position_x_offset = 34.0 # this is the offset from the center of the robot to LED0
+        position_y_offset = 20.0 # this is the offset from the center of the robot to LED0
+
+        best_transform[0,2] = best_transform[0,2] - position_x_offset
+        best_transform[1,2] = best_transform[1,2] - position_y_offset
+
         return best_transform, most_inliers, True
     except:
         return None, None, False
@@ -154,75 +162,81 @@ def get_robot_coordinates_wrt_robot_center_and_robot_coordinate_system(robot_coo
     # TODO after confirming what coordinate system the mapping algorithm will use
 
     return None
-
 ''' 
 Main function
 '''
-if __name__ == "__main__":
+# if __name__ == "__main__":
+def controller_demo_cv():
     debug = False # use static image
 
-    while True:
-        pre_image_time = time.time()
-        if debug:
-            image_frame = get_test_frame()
+    pre_image_time = time.time()
+    if debug:
+        image_frame = get_test_frame()
 
-        else:
-            image_frame = get_webcam_image()
-        post_image_time = time.time()
+    else:
+        image_frame = get_webcam_image()
+    post_image_time = time.time()
 
-        # debugging HSV values for the test_frame
-        green_rgb = np.uint8([[[0, 255, 0]]])
-        green_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
-        blue_rgb = np.uint8([[[0, 0, 255]]])
-        blue_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
-        # print(green_hsv)
-        h_buffer = 50
-        s_buffer = 10
-        lower = (int(green_hsv[0]) - h_buffer, int(green_hsv[1]) - s_buffer , 0)
-        upper = (int(green_hsv[0]) + h_buffer, int(green_hsv[1]) + s_buffer , 255)
-        lower = (int(blue_hsv[0]) - h_buffer, int(blue_hsv[1]) - s_buffer , 0)
-        upper = (int(blue_hsv[0]) + h_buffer, int(blue_hsv[1]) + s_buffer , 255)
+    # debugging HSV values for the test_frame
+    green_rgb = np.uint8([[[0, 255, 0]]])
+    green_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
+    blue_rgb = np.uint8([[[0, 0, 255]]])
+    blue_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
+    # print(green_hsv)
+    h_buffer = 50
+    s_buffer = 10
+    lower = (int(green_hsv[0]) - h_buffer, int(green_hsv[1]) - s_buffer , 0)
+    upper = (int(green_hsv[0]) + h_buffer, int(green_hsv[1]) + s_buffer , 255)
+    lower = (int(blue_hsv[0]) - h_buffer, int(blue_hsv[1]) - s_buffer , 0)
+    upper = (int(blue_hsv[0]) + h_buffer, int(blue_hsv[1]) + s_buffer , 255)
 
-        # HSV is being fucky due to blown out highlights, so hardcode values for testing
-        lower = (0, 0, 253)
-        upper = (255, 255, 255)
+    # HSV is being fucky due to blown out highlights, so hardcode values for testing
+    # lower = (0, 0, 253)
+    lower = (0, 0, 250)
+    upper = (255, 255, 255)
 
-        algo_1 = time.time()
-        masked_img, centers, num_of_centers = extract_LED_positions(image_frame, lower, upper)
-        # print("Number of LEDs found", num_of_centers)
-        # print("LED positions", centers)
-        algo_1_end = time.time()
-        transform, most_inliers, did_it_work = get_robot_affine_transform(np.array(get_robot_points()), centers)
-        if(did_it_work == False):
-            print("FUCKED")
-            continue
-        algo_2_end = time.time()
-        robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
-        algo_3_end = time.time()
+    algo_1 = time.time()
+    masked_img, centers, num_of_centers = extract_LED_positions(image_frame, lower, upper)
+    # cv.imshow("LED masked image", masked_img)
+    # cv.waitKey(0)
+    # cv.imshow("og image", image_frame)
+    # cv.waitKey(0)
+    # print("Number of LEDs found", num_of_centers)
+    # print("LED positions", centers)
+    algo_1_end = time.time()
+    transform, most_inliers, did_it_work = get_robot_affine_transform(np.array(get_robot_points()), centers)
+    if(did_it_work == False):
+        # print("FUCKED CV")
+        return None, None, None
+    algo_2_end = time.time()
+    robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
+    algo_3_end = time.time()
 
-        # print("Number of LEDs found", num_of_centers)
-        # print("Robot rotation (deg)", robot_rotation_deg)
-        # print("Robot position x", robot_pos_x)
-        # print("Robot position y", robot_pos_y)
+    # print("Number of LEDs found", num_of_centers)
+    # print("Robot rotation (deg)", robot_rotation_deg)
+    # print("Robot position x", robot_pos_x)
+    # print("Robot position y", robot_pos_y)
 
-        test_transformed_image = apply_transformation_matrix(image_frame, transform)
-        algo_4_end = time.time()
+    test_transformed_image = apply_transformation_matrix(image_frame, transform)
+    algo_4_end = time.time()
 
-        # print("Time to get image", post_image_time - pre_image_time)
-        # print("Time to get LED positions", algo_1_end - algo_1)
-        # print("Time to get robot transform", algo_2_end - algo_1_end)
-        # print("Time to get robot coordinates", algo_3_end - algo_2_end)
-        # print("Time to apply transform", algo_4_end - algo_3_end)
-        # print("total time", algo_4_end - pre_image_time)
+    # print("Time to get image", post_image_time - pre_image_time)
+    # print("Time to get LED positions", algo_1_end - algo_1)
+    # print("Time to get robot transform", algo_2_end - algo_1_end)
+    # print("Time to get robot coordinates", algo_3_end - algo_2_end)
+    # print("Time to apply transform", algo_4_end - algo_3_end)
+    # print("total time", algo_4_end - pre_image_time)
 
-        print("Frame rate: " + str(int(1/(algo_4_end - pre_image_time))) + " Pose: " + str(robot_pos_x) + ", " + str(robot_pos_y) + ", " + str(robot_rotation_deg))
-        # cv.imshow("original image", image_frame)
-        # cv.waitKey(0)
-        # cv.imshow("LED masked image", masked_img)
-        # cv.waitKey(0)
-        # cv.imshow("transformed image", test_transformed_image)
-        # cv.waitKey(0)
+    # print("Frame rate: " + str(int(1/(algo_4_end - pre_image_time))) + " Pose: " + str(robot_pos_x) + ", " + str(robot_pos_y) + ", " + str(robot_rotation_deg))
+    # cv.imshow("original image", image_frame)
+    # cv.waitKey(0)
+    # cv.imshow("LED masked image", masked_img)
+    # cv.waitKey(0)
+    # cv.imshow("transformed image", test_transformed_image)
+    # cv.waitKey(0)
 
-        # break
+    # break
+
+    return robot_pos_x, robot_pos_y, robot_rotation_rad
 
     
