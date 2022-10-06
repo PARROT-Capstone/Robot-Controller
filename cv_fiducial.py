@@ -96,10 +96,8 @@ class CV_Fiducial:
         sum_of_fiducial_pixels = 0
         for fiducial_id in self.cv_fiducial_markerDict.keys():
             # top left to top right x distance
-            print(self.cv_fiducial_markerDict[fiducial_id][3][0] - self.cv_fiducial_markerDict[fiducial_id][2][0])
             sum_of_fiducial_pixels += self.cv_fiducial_markerDict[fiducial_id][3][0] - self.cv_fiducial_markerDict[fiducial_id][2][0]
             # top left to bottom left y distance
-            print(self.cv_fiducial_markerDict[fiducial_id][5][1] - self.cv_fiducial_markerDict[fiducial_id][2][1])
             sum_of_fiducial_pixels += self.cv_fiducial_markerDict[fiducial_id][4][1] - self.cv_fiducial_markerDict[fiducial_id][2][1]
 
         average_fiducial_pixels = sum_of_fiducial_pixels / (len(self.cv_fiducial_markerDict.keys()) * 2)
@@ -109,8 +107,8 @@ class CV_Fiducial:
     def cv_fiducial_findSandboxSize(self):
         top_left_id, top_right_id, bottom_left_id, bottom_right_id = self._cv_fiducial_findCornerFiducials()
         # calculate the arena size in mm
-        self.arena_width_mm = self.cv_fiducial_markerDict[top_left_id][3][0] - self.cv_fiducial_markerDict[top_right_id][2][0] * self.mm_per_pixel
-        self.arena_height_mm = self.cv_fiducial_markerDict[top_left_id][4][1] - self.cv_fiducial_markerDict[bottom_left_id][2][1] * self.mm_per_pixel
+        self.arena_width_mm = (self.cv_fiducial_markerDict[top_right_id][3][0] - self.cv_fiducial_markerDict[top_left_id][2][0]) * self.mm_per_pixel
+        self.arena_height_mm = (self.cv_fiducial_markerDict[bottom_left_id][5][1] - self.cv_fiducial_markerDict[top_left_id][2][1]) * self.mm_per_pixel
         
 
     def cv_fiducial_flattenSandboxImage(self, image_frame):

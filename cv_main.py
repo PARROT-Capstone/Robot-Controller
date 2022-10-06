@@ -47,7 +47,7 @@ class CV:
 
     def cv_GetSandboxSize(self):
         # get this from the cv_fiducial class
-        pass
+        return self.cv_fiducial.arena_width_mm, self.cv_fiducial.arena_height_mm
 
     def cv_GetSandboxGoals(self):
         # get this from the cv_fiducial class
