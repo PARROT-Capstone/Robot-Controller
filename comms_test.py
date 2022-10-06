@@ -4,7 +4,7 @@ import time
 # main functino for testing the comms module
 def main():
     print("Testing comms module")
-    robot_url = "http://172.26.170.242"
+    robot_url = "http://172.26.171.154"
     
     # get user input for rgb values
     r = input("Enter red value: ")

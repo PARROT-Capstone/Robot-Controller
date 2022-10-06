@@ -13,3 +13,10 @@ def blockingError(errorMsg):
         print(errorMsg)
         time.sleep(1)
 
+
+'''
+Controls Constants
+'''
+wheel_base = 100 # mm # wheelbase is actually 100mm
+half_wheel_base = 50 # mm # wheelbase is actually 100mm
+wheel_radius = 30 # mm
