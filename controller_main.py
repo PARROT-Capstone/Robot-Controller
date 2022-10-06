@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import math
+import scipy
 import mainHelper
 import constants
 
@@ -17,6 +18,14 @@ class Controller:
         self.startTime = time.time()
         self.robotId = robotId
         self.robotPath = mainHelper.Main_getRobotPaths(self.robotId)
+        # path is (x, y, theta, relative_time)
+        self.times = [self.robotPath[i][3] for i in range(len(self.robotPath))]
+        self.x = [self.robotPath[i][0] for i in range(len(self.robotPath))]
+        self.y = [self.robotPath[i][1] for i in range(len(self.robotPath))]
+        self.theta = [self.robotPath[i][2] for i in range(len(self.robotPath))]
+        self.splineX = scipy.interpolate.interp1d(self.times, self.x, kind='cubic')
+        self.splineY = scipy.interpolate.interp1d(self.times, self.y, kind='cubic')
+        self.splineTheta = scipy.interpolate.interp1d(self.times, self.theta, kind='cubic')
         self.robotError = (0, 0, 0)
         self.errorDiff_robot = (0, 0, 0)
         self.robotErrorLast = (0, 0, 0)
@@ -75,17 +84,11 @@ class Controller:
         return (errorRobot_robot[0], errorRobot_robot[1], errorTheta)
     
     # Returns (linear velocity, angular velocity)
-    def controller_getFeedforwardTerm(self, targetPose_global, relativeTime):
-        previousPose_global = self.controller_getNextTargetPoint(self.last_position_time - self.startTime)
-        linearVelocity = 0
-        angularVelocity = 0
-        deltaTime = targetPose_global[3] - previousPose_global[3]
-        if (deltaTime == 0):
-            return (linearVelocity, angularVelocity)
-        angularVelocity = (targetPose_global[2] - previousPose_global[2]) / deltaTime
-        deltaX = targetPose_global[1] - previousPose_global[1]
-        deltaY = targetPose_global[0] - previousPose_global[0]
-        linearVelocity = math.sqrt( (deltaX/deltaTime)**2 + (deltaY/deltaTime)**2 )
+    def controller_getFeedforwardTerm(self, relativeTime):
+        dxdt = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
+        dydt = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
+        angularVelocity = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
+        linearVelocity = math.sqrt(dxdt**2 + dydt**2)
         return (linearVelocity, angularVelocity)
 
     # Returns (linear velocity, angular velocity)
