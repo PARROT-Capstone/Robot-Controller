@@ -98,15 +98,53 @@ class Controller:
         return (errorRobot_robot[0], errorRobot_robot[1], errorTheta)
     
     # Returns (linear velocity, angular velocity)
-    def controller_getFeedforwardTerm(self, relativeTime):
-        dxdt = derivative(self.splineX, relativeTime, n=1, dx=1e-3)
-        dydt = derivative(self.splineY, relativeTime, n=1, dx=1e-3)
-        d2xdt2 = derivative(self.splineX, relativeTime, n=2,dx=1e-3)
-        d2ydt2 = derivative(self.splineY, relativeTime, n=2, dx=1e-3)
-        linearVelocity = math.sqrt(dxdt**2 + dydt**2)
-        curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
-        angularVelocity = linearVelocity * curvature
-        return (linearVelocity, angularVelocity)
+    def controller_getFeedforwardTerm(self, relativeTime, dt):
+        pastPoint = None
+        nextPoint = None
+        for point in self.robotPath:
+            pointTime = point[3]
+            if pointTime <= relativeTime:
+                pastPoint = point
+            if pointTime > relativeTime:
+                nextPoint = point
+                break
+        
+        if (pastPoint is None or nextPoint is None):
+            return (0, 0)
+        
+        # if Thetas are same, drive straight
+        if pastPoint[2] == nextPoint[2]:
+            angularVelocity = 0
+            deltaX = nextPoint[0] - pastPoint[0]
+            deltaY = nextPoint[1] - pastPoint[1]
+            deltaT = nextPoint[3] - pastPoint[3]
+            linearVelocity = math.sqrt((deltaX/deltaT)**2 + (deltaY/deltaT)**2)
+            return (linearVelocity, angularVelocity)
+        else:
+            times = [pastPoint[3]-constants.controlsDeltaTime, pastPoint[3], pastPoint[3]+constants.controlsDeltaTime,
+                    nextPoint[3]-constants.controlsDeltaTime, nextPoint[3], nextPoint[3]+constants.controlsDeltaTime]
+            x = [pastPoint[0]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(pastPoint[2]),
+                pastPoint[0],
+                pastPoint[0]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(pastPoint[2]),
+                nextPoint[0]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(nextPoint[2]),
+                nextPoint[0],
+                nextPoint[0]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(nextPoint[2])]
+            y = [pastPoint[1]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(pastPoint[2]),
+                pastPoint[1],
+                pastPoint[1]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(pastPoint[2]),
+                nextPoint[1]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(nextPoint[2]),
+                nextPoint[1],
+                nextPoint[1]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(nextPoint[2])]
+            splineX = interp1d(times, x, kind='cubic', fill_value="extrapolate")
+            splineY = interp1d(times, y, kind='cubic', fill_value="extrapolate")
+            dxdt = derivative(splineX, relativeTime, n=1, dx=dt)
+            dydt = derivative(splineY, relativeTime, n=1, dx=dt)
+            d2xdt2 = derivative(splineX, relativeTime, n=2,dx=dt)
+            d2ydt2 = derivative(splineY, relativeTime, n=2, dx=dt)
+            linearVelocity = math.sqrt(dxdt**2 + dydt**2)
+            curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
+            angularVelocity = linearVelocity * curvature
+            return (linearVelocity, angularVelocity)
 
     # Returns (linear velocity, angular velocity)
     def controller_getFeedbackTerm(self):
