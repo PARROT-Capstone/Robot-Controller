@@ -136,5 +136,13 @@ class CV_Fiducial:
             return warped_image
 
 
-    def cv_fiducial_getPalletPositions():
-        pass
+    def cv_fiducial_getPalletPositions(self):
+        palletFiducialIDs = constants.PALLET_FIDUCIALS
+        foundPalletFiducialIDs = {}
+
+        # Find and pack the found pallets from the possible pallet fiducials
+        for fiducialID in palletFiducialIDs:
+            if fiducialID in self.cv_fiducial_markerDict.keys():
+                foundPalletFiducialIDs[fiducialID] = self.cv_fiducial_markerDict[fiducialID][0:2]
+        
+        return foundPalletFiducialIDs
