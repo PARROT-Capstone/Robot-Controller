@@ -26,9 +26,20 @@ class Controller:
         self.x = [self.robotPath[i][0] for i in range(len(self.robotPath))]
         self.y = [self.robotPath[i][1] for i in range(len(self.robotPath))]
         self.theta = [self.robotPath[i][2] for i in range(len(self.robotPath))]
-        self.splineX = interp1d(self.times, self.x, kind='cubic')
-        self.splineY = interp1d(self.times, self.y, kind='cubic')
-        self.splineTheta = interp1d(self.times, self.theta, kind='cubic')
+        deltaXp = [self.x[i]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(self.theta[i]) for i in range(len(self.x))]
+        deltaXn = [self.x[i]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(self.theta[i]) for i in range(len(self.x))]
+        deltaYp = [self.y[i]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(self.theta[i]) for i in range(len(self.y))]
+        deltaYn = [self.y[i]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(self.theta[i]) for i in range(len(self.y))]
+        self.x.extend(deltaXp)
+        self.x.extend(deltaXn)
+        self.y.extend(deltaYp)
+        self.y.extend(deltaYn)
+        deltaTp = [self.times[i]+constants.controlsDeltaTime for i in range(len(self.times))]
+        deltaTn = [self.times[i]-constants.controlsDeltaTime for i in range(len(self.times))]
+        self.times.extend(deltaTp)
+        self.times.extend(deltaTn)
+        self.splineX = interp1d(self.times, self.x, kind='cubic', fill_value="extrapolate")
+        self.splineY = interp1d(self.times, self.y, kind='cubic', fill_value="extrapolate")
         self.robotError = (0, 0, 0)
         self.errorDiff_robot = (0, 0, 0)
         self.robotErrorLast = (0, 0, 0)
@@ -88,10 +99,13 @@ class Controller:
     
     # Returns (linear velocity, angular velocity)
     def controller_getFeedforwardTerm(self, relativeTime):
-        dxdt = derivative(self.x, relativeTime, dx=1e-3)
-        dydt = derivative(self.x, relativeTime, dx=1e-3)
-        angularVelocity = derivative(self.x, relativeTime, dx=1e-3)
+        dxdt = derivative(self.splineX, relativeTime, n=1, dx=1e-3)
+        dydt = derivative(self.splineY, relativeTime, n=1, dx=1e-3)
+        d2xdt2 = derivative(self.splineX, relativeTime, n=2,dx=1e-3)
+        d2ydt2 = derivative(self.splineY, relativeTime, n=2, dx=1e-3)
         linearVelocity = math.sqrt(dxdt**2 + dydt**2)
+        curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
+        angularVelocity = linearVelocity * curvature
         return (linearVelocity, angularVelocity)
 
     # Returns (linear velocity, angular velocity)

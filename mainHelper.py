@@ -5,7 +5,7 @@ def Main_getRobotCounts():
     return 1
 
 def Main_getRobotPaths(robotId):
-    return [(0, 0, 0, 0, 0), (1, 0, 0, 2, 0), (2, 4, math.pi/2, 6, 0),
+    return [(-1, -1, math.pi, 0), (0, 0, 0, 1, 0), (1, 0, 0, 2, 0), (2, 4, math.pi/2, 6, 0),
     (0, 4, -math.pi/2, 8, 0), (0, -6, -math.pi/2, 11, 0), (10, 0, math.pi/2, 20, 0),
     (10, 0, math.pi/2, 25, 0), (-2, -4, -math.pi/4, 35, 0)]
 
