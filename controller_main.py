@@ -1,7 +1,8 @@
 import numpy as np
 import time
 import math
-import scipy
+from scipy.interpolate import interp1d
+from scipy.misc import derivative
 import mainHelper
 import constants
 
@@ -13,6 +14,8 @@ Kd = 0
 
 # Based on Mobile Robot Programming Lab and https://www.researchgate.net/profile/Muhammad-Asif-62/publication/266798448_20140930101805712/links/543cc55d0cf24ef33b7639cb/20140930101805712.pdf
 
+# TODO: Simulation and Electromagnet Commands
+
 class Controller:
     def __init__(self, robotId):
         self.startTime = time.time()
@@ -23,9 +26,9 @@ class Controller:
         self.x = [self.robotPath[i][0] for i in range(len(self.robotPath))]
         self.y = [self.robotPath[i][1] for i in range(len(self.robotPath))]
         self.theta = [self.robotPath[i][2] for i in range(len(self.robotPath))]
-        self.splineX = scipy.interpolate.interp1d(self.times, self.x, kind='cubic')
-        self.splineY = scipy.interpolate.interp1d(self.times, self.y, kind='cubic')
-        self.splineTheta = scipy.interpolate.interp1d(self.times, self.theta, kind='cubic')
+        self.splineX = interp1d(self.times, self.x, kind='cubic')
+        self.splineY = interp1d(self.times, self.y, kind='cubic')
+        self.splineTheta = interp1d(self.times, self.theta, kind='cubic')
         self.robotError = (0, 0, 0)
         self.errorDiff_robot = (0, 0, 0)
         self.robotErrorLast = (0, 0, 0)
@@ -66,7 +69,7 @@ class Controller:
     def controller_getNextTargetPoint(self, relativeTime):
         if self.robotPath is None or len(self.robotPath) == 0:
             return None
-        # path is (x, y, theta, relative_time)
+        # path is (x, y, theta, relative_time, tag)
         for point in self.robotPath:
             if point[3] > relativeTime:
                 return point
@@ -85,9 +88,9 @@ class Controller:
     
     # Returns (linear velocity, angular velocity)
     def controller_getFeedforwardTerm(self, relativeTime):
-        dxdt = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
-        dydt = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
-        angularVelocity = scipy.misc.derivative(self.x, relativeTime, dx=1e-3)
+        dxdt = derivative(self.x, relativeTime, dx=1e-3)
+        dydt = derivative(self.x, relativeTime, dx=1e-3)
+        angularVelocity = derivative(self.x, relativeTime, dx=1e-3)
         linearVelocity = math.sqrt(dxdt**2 + dydt**2)
         return (linearVelocity, angularVelocity)
 
