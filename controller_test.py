@@ -6,7 +6,7 @@ import time
 import constants
 from controller_main import Controller
 
-dt = 0.03 #sec
+dt = 0.04 #sec
 
 
 # Visualize trajectory
@@ -23,10 +23,12 @@ robotTheta = traj[0][2]
 
 expectedX = [traj[0][0]]
 expectedY = [traj[0][1]]
+times = []
 
 controller = Controller(0)
 endTime = time.time() + 40
 while time.time() <= endTime:
+    startCompute = time.time()
     wheelV, pos = controller.controller_getRobotVelocities((robotX[-1], robotY[-1], robotTheta))
     expectedX.append(pos[0])
     expectedY.append(pos[1])
@@ -40,13 +42,18 @@ while time.time() <= endTime:
     robotX.append(robotX[-1]+dt*v*math.cos(robotTheta))
     robotY.append(robotY[-1]+dt*v*math.sin(robotTheta))
     robotTheta += dtheta/2
-    time.sleep(dt)
+    stopCompute = time.time()
+    times.append(stopCompute-startCompute)
+    while time.time() < startCompute + dt:
+        continue
 
 axis[0].plot(expectedX, expectedY)
 
 axis[1].plot(robotX, robotY)
 axis[1].set_title("Robot")
 
-print("Expected: {}, {}\nActual: {}, {}".format(expectedX[-1], expectedY[-1], robotX[-1], robotY[-1]))
+print("Expected: ({}, {})\nActual: ({}, {})".format(expectedX[-1], expectedY[-1], robotX[-1], robotY[-1]))
+print("Distance: {}".format(math.sqrt((expectedX[-1] - robotX[-1])**2 + (expectedY[-1] - robotY[-1])**2)))
+print("Average Compute Time: {} sec".format(sum(times)/len(times)))
 
 plt.show()
