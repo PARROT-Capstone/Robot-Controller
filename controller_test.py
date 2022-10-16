@@ -2,43 +2,51 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import mainHelper
+import time
+import constants
 from controller_main import Controller
 
-timeEnd = 35
-timeStep = 5000
-timesViz = np.linspace(0, timeEnd, num=timeStep, endpoint=True)
+dt = 0.03 #sec
 
-controller = Controller(0)
-X = controller.splineX
-Y = controller.splineY
-# figure, axis = plt.subplots(1, 2)
-# axis[0].plot(timesViz, X(timesViz))
-# axis[0].set_title("X")
-# axis[1].plot(timesViz, Y(timesViz))
-# axis[1].set_title("Y")
-# plt.show()
 
 # Visualize trajectory
 figure, axis = plt.subplots(1, 2)
-axis[0].plot(X(timesViz), Y(timesViz))
 traj = mainHelper.Main_getRobotPaths(0)
 for point in traj:
     dist = 0.3
     axis[0].arrow(point[0], point[1], dist*math.cos(point[2]), dist*math.sin(point[2]), color="red", width=0.1)
 axis[0].set_title("Expected")
 
-x = [X(0)]
-y = [Y(0)]
-theta = controller.theta[0]
-for i in range(1, len(timesViz)):
-    dt = timesViz[i] - timesViz[i-1]
-    v, w = controller.controller_getFeedforwardTerm(timesViz[i], dt)
+robotX = [traj[0][0]]
+robotY = [traj[0][1]]
+robotTheta = traj[0][2]
+
+expectedX = [traj[0][0]]
+expectedY = [traj[0][1]]
+
+controller = Controller(0)
+endTime = time.time() + 40
+while time.time() <= endTime:
+    wheelV, pos = controller.controller_getRobotVelocities((robotX[-1], robotY[-1], robotTheta))
+    expectedX.append(pos[0])
+    expectedY.append(pos[1])
+
+    velLeft, velRight = wheelV
+    v = (velLeft + velRight) / 2
+    w = (velRight - velLeft) / constants.wheel_base
+
     dtheta = dt*w
-    theta += dtheta/2
-    x.append(x[-1]+dt*v*math.cos(theta))
-    y.append(y[-1]+dt*v*math.sin(theta))
-    theta += dtheta/2
-axis[1].plot(x, y)
+    robotTheta += dtheta/2
+    robotX.append(robotX[-1]+dt*v*math.cos(robotTheta))
+    robotY.append(robotY[-1]+dt*v*math.sin(robotTheta))
+    robotTheta += dtheta/2
+    time.sleep(dt)
+
+axis[0].plot(expectedX, expectedY)
+
+axis[1].plot(robotX, robotY)
 axis[1].set_title("Robot")
+
+print("Expected: {}, {}\nActual: {}, {}".format(expectedX[-1], expectedY[-1], robotX[-1], robotY[-1]))
 
 plt.show()
