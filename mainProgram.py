@@ -15,5 +15,6 @@ controllers = [Controller(i) for i in range(mainHelper.Main_getRobotCounts())]
 while True:
     robotPoses = computerVision.cv_GetRobotPositions()
     for i in range(mainHelper.Main_getRobotCounts()):
-        velLeftLinear, velRightLinear = controllers[i].controller_getRobotVelocities(robotPoses[i])
+        linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+        velLeftLinear, velRightLinear = linearWheelVelocities
         mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear)

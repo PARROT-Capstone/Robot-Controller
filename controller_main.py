@@ -71,7 +71,7 @@ class Controller:
 
         # Return wheel speeds based on FFW + FBK terms
         self.robotCommand = tuple(np.add(feedforward, feedback))
-        return (self.controller_getWheelVelocities(), targetPose_global)
+        return (self.controller_getWheelVelocities(), targetPose_global, feedforward, feedback)
     
     def controller_getPastNextPoints(self, relativeTime):
         # point is (x, y, theta, relative_time, tag)
