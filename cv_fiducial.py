@@ -13,14 +13,6 @@ import constants
 # cap = cv.VideoCapture(0)
 debug = True
 
-def get_webcam_image():
-    '''
-    This function returns an image from the webcam.
-    '''
-    ret, frame = cap.read()
-    # cap.release()
-    return frame
-
 class CV_Fiducial:
     def __init__(self):
         self.cv_fiducial_markerDict = {}
@@ -33,7 +25,10 @@ class CV_Fiducial:
     Return: [Top left, Top right, Bottom left, Bottom right]
     '''
     def cv_fiducial_generateFiducialLocations(self, image_frame):
-
+        try:
+            cv.imshow("image", image_frame)
+        except:
+            return
         arucoDict = cv.aruco.Dictionary_get(cv.aruco.DICT_4X4_50)
         arucoParams = cv.aruco.DetectorParameters_create()
         corner_list, fiducial_ids, _ = cv.aruco.detectMarkers(image_frame, arucoDict, parameters=arucoParams)
@@ -54,6 +49,7 @@ class CV_Fiducial:
                 centerY = int((topLeft[1] + bottomRight[1]) / 2.0)
 
                 self.cv_fiducial_markerDict[fiducial_id] = (centerX, centerY, topLeft, topRight, bottomRight, bottomLeft)
+        print("Fiducials Found: " + str(len(self.cv_fiducial_markerDict.keys())))
 
     '''
     This function finds the correct fiducial locations and returns them in the correct order.

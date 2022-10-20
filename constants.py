@@ -1,4 +1,5 @@
 import time
+import os
 
 
 '''
@@ -6,25 +7,28 @@ Computer Vision Constants
 '''
 # The fiducial marker indexes for the sandbox perimeter and goals. 
 # Ordering is not important.
-CORNER_FIDUCIALS = [0,3,6,9]
+CORNER_FIDUCIALS = [1,4,7,10]
 PALLET_FIDUCIALS = [1,2,4,5,7,8,10]
 
+WEBCAM_ID = 0
 
-ROBOT_ID_TO_COLOR = {
-    0: (0, 0, 255),
-    1: (0, 255, 0),
-    2: (255, 0, 0),
-    3: (255, 255, 0),
-    4: (255, 0, 255),
-    5: (0, 255, 255),
-    6: (255, 255, 255),
-    7: (0, 0, 0),
-    8: (128, 128, 128),
-    9: (128, 0, 0)
-}
+CV_DEBUG = True
+
+path = os.getcwd()
+CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/simRobots.JPG"
+
+# Note this is HSV, not RGB
+CV_ROBOT_VARIENCE_LOWER_BOUND = (0, 0, 230)
+CV_ROBOT_VARIENCE_UPPER_BOUND = (255, 255, 255)
+
+CV_LEDS_PER_ROBOT = 5
 
 # The physical real world width of the fiducial markers in mm.
 FIDUCIAL_WIDTH_MM = 30 # TODO: Just a guess
+
+def debugPrint(debugMsg):
+    if CV_DEBUG:
+        print(debugMsg)
 
 def blockingError(errorMsg):
     while(True):
