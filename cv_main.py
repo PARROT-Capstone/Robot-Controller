@@ -7,47 +7,60 @@ is different from the robot coordinate system.
 '''
 
 from dis import code_info
+from distutils.log import debug
 from turtle import position
 import cv2 as cv
 import numpy as np
-import os
 import time 
 from cv_fiducial import CV_Fiducial
 import constants
+from constants import debugPrint
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import pandas as pd
     
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(constants.WEBCAM_ID)
 
 class CV:
     def __init__(self):
         self.cv_fiducial = CV_Fiducial()
+        self.robotCount = None
+        self.robotRGBMasks = None
+        self.visualizerField = None
+
+        self.latestImageRaw = None
+        self.latestSandboxImage = None
+        self.latestRobotPositions = None
+        self.actualRobotPaths = None # eventually replace with a dict as follows {robotId: [(time, pose), (time, pose), ...]}
+
+##############################################
+#            Public Functions
+##############################################
+
     def cv_GetRobotCounts(self):
-        # loop through all the masks and count the number of robots
-        return 1
+        return self.robotCount
+
+    def cv_runLocalizer(self):
+        self.latestImageRaw = self._cv_CaptureImage()
+        self.latestSandboxImage = self.cv_fiducial.cv_fiducial_flattenSandboxImage(self.latestImageRaw)
+
+        if self.latestImageRaw is None:
+            debugPrint("Computer Vision: No Image Captured")
+            return
+
+        self._cv_GenerateRobotPositions(self.latestSandboxImage)
+        self.cv_fiducial.cv_fiducial_generatePalletLocations(self.latestSandboxImage)
+
 
     def cv_GetRobotPositions(self):
-
-        latestImageRaw = self._cv_CaptureImage()
-        latestImageWarped = self.cv_fiducial.cv_fiducial_flattenSandboxImage(latestImageRaw)
-        cv.imshow("Warped Image", latestImageWarped)
-        cv.waitKey(0)
-        robotMasks = constants.ROBOT_MASKS # TODO do the transfer from the robot count to the masks so we don't waste time looking at robots not in the game
-
-        robot_positions = {}
-        for robotMask in robotMasks:
-            maskedImg, pointCenters, numOfCenters  = self._cv_extractLEDpositions(latestImageWarped, robotMask)
-            transform, most_inliers, did_it_work = self._cv_getRobotAffineTransform(pointCenters)
-            robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
-
-            robot_positions[robotMask] = (robot_pos_x, robot_pos_y, robot_rotation_rad)
-        pass
+        return self.latestRobotPositions
 
     def cv_GetPalletPositions(self):
-        # Loop thourgh pallet fiducials and get their positions
-        pass
+        return self.cv_fiducial.cv_fiducial_getPalletPositions()
 
     def cv_GetSandboxSize(self):
         # get this from the cv_fiducial class
-        return self.cv_fiducial.arena_width_mm, self.cv_fiducial.arena_height_mm
+        return self.cv_fiducial.sandbox_width_mm, self.cv_fiducial.sandbox_height_mm
 
     def cv_GetSandboxGoals(self):
         # get this from the cv_fiducial class
@@ -55,57 +68,230 @@ class CV:
 
     def cv_InitComputerVision(self):
         # Initialize the computer vision
-        # wait till at least 4 fiducials are found (corner fiducials)
-        while(len(self.cv_fiducial.cv_fiducial_markerDict.keys()) < 4):
-            self.cv_fiducial.cv_fiducial_generateFiducialLocations(self._cv_CaptureImage())
-            print("Computer Vision: Waiting for sandbox fiducial Markers")
-            time.sleep(1)
+        self.latestSandboxImage = self.cv_fiducial.cv_fiducial_setupSandbox(self._cv_CaptureImage())
+        self.cv_fiducial.cv_fiducial_findSandboxSize(self.latestSandboxImage)
 
-        self.cv_fiducial.cv_fiducial_findPixelPitch()
-        self.cv_fiducial.cv_fiducial_findSandboxSize()
-        print("Computer Vision Initialized and Ready")
-        print("Sandbox Size: ", self.cv_fiducial.arena_width_mm, self.cv_fiducial.arena_height_mm)
+        print("Computer Vision Field Ready")
+        print("Sandbox Size: ", self.cv_fiducial.sandbox_width_mm, self.cv_fiducial.sandbox_height_mm)
+
+        # generate the robot masks dynamically
+        self._cv_GenerateRobotMasks()
+    
+    def cv_visualize(self):
+        # Goals:
+        # 1. Place a vector at each robot's position
+        # 2. Place a centroid at each pallet's position
+        # 3. Visualize the current path (assume it's a dict with keys being robot ID)
+        # 4. Visualize the actual path that the robot has taken 
+
+        if self.visualizerField is None:
+            if self.latestSandboxImage is None:
+                return # wait for a valid image to be captured
+            self.visualizerField = self.latestImageWarped.copy()
+
+
+        # 1. Place a vector at each robot's position
+        for robotId in self.latestRobotPositions.keys():
+            robot_pos_x, robot_pos_y, robot_rotation_rad = self.latestRobotPositions[robotId]
+            cv.arrowedLine(self.visualizerField, (robot_pos_x, robot_pos_y), (robot_pos_x + 10*np.cos(robot_rotation_rad), robot_pos_y + 10*np.sin(robot_rotation_rad)), (0, 0, 255), 2)
+        
+        # 2. Place a centroid at each pallet's position
+        for fiducialId in self.latestFiducialPositions.keys():
+            fiducial_pos_x, fiducial_pos_y = self.latestFiducialPositions[fiducialId]
+            cv.circle(self.visualizerField, (fiducial_pos_x, fiducial_pos_y), 2, (0, 255, 0), 2)
+        
+        if(constants.CV_VISUALIZE_PATH):
+            pass
+
+        if(constants.CV_VISUALIZE_ACTUAL_PATH):
+            pass
+        
+        cv.imshow("Visualizer", self.visualizerField)
+        cv.waitKey(1)
+
+##############################################
+#            Private Functions
+##############################################
+
+    def _cv_GenerateRobotPositions(self, latestSandboxImage):
+
+        # for each led, figure out which robot it belongs to
+        maskedImg, pointCenters, numOfCenters, robotLedValues  = self._cv_extractLEDpositions(latestSandboxImage)
+
+        robotIdPixelDict = {}
+        
+        # TODO: could easily be vectorized
+        for i in range(0, numOfCenters):
+            robotId = self.ledNeigbors.predict([robotLedValues[i]])[0]
+            if robotId in robotIdPixelDict.keys():
+                robotIdPixelDict[robotId].append(pointCenters[i])
+            else:
+                robotIdPixelDict[robotId] = [pointCenters[i]]
+            
+        # now that we have an unsorted list of which leds are which, figure out the best fit 
+        # robot transform for each robot
+        robotPositions = {}
+        for robotId in robotIdPixelDict.keys():
+            transform, most_inliers, did_it_work = self._cv_getRobotAffineTransform(self._cv_getRobotPoints(), robotIdPixelDict[robotId])
+            robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
+            print("Robot Position: ", robot_pos_x, robot_pos_y, robot_rotation_deg)
+            robotPositions[robotId] = (robot_pos_x, robot_pos_y, robot_rotation_rad)
+        
+        self.latestRobotPositions = robotPositions
+
+        return robotPositions
+
+    def _cv_GenerateRobotMasks(self):
+        '''
+        Use K nearest neighbors to generate the robot masks
+        '''
+        latestImageWarped = self.cv_fiducial.cv_fiducial_flattenSandboxImage(self._cv_CaptureImage())
+
+        if constants.CV_DEBUG:
+            cv.imshow("Warped Image", latestImageWarped)
+            cv.waitKey(0)
+
+        maskedLedImage, robotLedCenters, numLeds, ledRGBvals = self._cv_extractLEDpositions(latestImageWarped)
+        self.robotCount = round(numLeds/constants.CV_LEDS_PER_ROBOT)
+
+        debugPrint(str("Robot's detected: " + str(self.robotCount)))
+        debugPrint(ledRGBvals)
+
+        # Use K nearest neighbors to generate the robot masks
+        self.ledNeigbors = KMeans(n_clusters=self.robotCount).fit(ledRGBvals)
+
+        if constants.CV_DEBUG:
+            # make a 3d scatter plot of the robot leds with the led colors classified and led centroids
+            y_kmeans = self.ledNeigbors.predict(ledRGBvals)
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(ledRGBvals[:,0], ledRGBvals[:,1], ledRGBvals[:,2], c=y_kmeans, cmap='rainbow')
+            ax.scatter(self.ledNeigbors.cluster_centers_[:,0], self.ledNeigbors.cluster_centers_[:,1], self.ledNeigbors.cluster_centers_[:,2], c='black', s=200, alpha=0.5)
+            plt.show()
+
 
     def _cv_CaptureImage(self):
+        if constants.CV_DEBUG:
+        # if False:
+            image = cv.imread(constants.CV_DEBUG_IMAGE_PATH)
+            cv.imshow("Source Image", image)
+            cv.waitKey(0)
+            return image
         ret, frame = cap.read()
+        while np.shape(frame) == ():
+            ret, frame = cap.read()
+            print("Waiting for camera to initialize...")
+        if constants.CV_DEBUG:
+            cv.imshow("Source Image", frame)
+            cv.waitKey(0)
         return frame
 
-    def _cv_extractLEDpositions(self, img, color_mask):
+    def _cv_extractLEDpositions(self, img):
         '''
         This function returns the LED positions in the image.
         '''
-        color_filter_lower_bound = color_mask[0]
-        color_filter_upper_bound = color_mask[1]
+        
+        # Find all circles that meet a certain size, and create a mask
+        mask = np.zeros(img.shape[:2], np.uint8)
+        img_filtered_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        circles = cv.HoughCircles(\
+            img_filtered_gray, \
+            cv.HOUGH_GRADIENT, \
+            1, \
+            minDist = constants.CV_PIXEL_DISTANCE_BETWEEN_LEDS, \
+            param1 = constants.CV_CIRCLE_PARAM1, \
+            param2 = constants.CV_CIRCLE_PARAM2, \
+            minRadius = constants.CV_LED_MIN_CIRCLE, \
+            maxRadius = constants.CV_LED_MAX_CIRCLE)
+        # ensure at least some circles were found
+        if circles is not None:
+            # convert the (x, y) coordinates and radius of the circles to integers
+            circles = np.round(circles[0, :]).astype("int")
+            # loop over the (x, y) coordinates and radius of the circles
+            for (x, y, r) in circles:
+                mask = cv.circle(mask, (x, y), int(r * constants.CV_CIRCLE_MASK_MULTIPLIER), (255, 255, 255), -1)
+                # draw the circle in the output image, then draw a rectangle
+                # corresponding to the center of the circle
+                if constants.CV_DEBUG:
+                    cv.circle(img_filtered_gray, (x, y), r, (0, 255, 0), 4)
+                    cv.rectangle(img_filtered_gray, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+                    cv.putText(img_filtered_gray, str(r), (x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv.LINE_AA)
+            if constants.CV_DEBUG:
+                # show the output image
+                cv.imshow("output", img_filtered_gray)
+                cv.waitKey(0)
+        else: 
+            debugPrint("No circles found")
+        
+        # Apply the mask to the image
+        circleMasked = cv.bitwise_and(img, img, mask=mask) 
+        if constants.CV_DEBUG:
+            cv.imshow("Masked Image", circleMasked)
+            cv.waitKey(0)
 
-        mask = cv.inRange(img, color_filter_lower_bound, color_filter_upper_bound)
+        # apply a varience filter to the image
+        color_filter_lower_bound = constants.CV_ROBOT_VARIENCE_LOWER_BOUND
+        color_filter_upper_bound = constants.CV_ROBOT_VARIENCE_UPPER_BOUND
+        img_hsv = cv.cvtColor(circleMasked, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(img_hsv, color_filter_lower_bound, color_filter_upper_bound)
         img_filtered = cv.bitwise_and(img, img, mask=mask)
+
+        if constants.CV_DEBUG:
+            cv.imshow("LED varience masked image", img_filtered)
+            cv.waitKey(0)
 
         # erode and dilate to remove noise
         kernel = np.ones((5,5),np.uint8)
         img_filtered = cv.erode(img_filtered,kernel,iterations = 1)
-        img_filtered = cv.dilate(img_filtered,kernel,iterations = 1)
+        img_filtered = cv.dilate(img_filtered,kernel,iterations = 3)
+
+        if constants.CV_DEBUG:
+            cv.imshow("LED varience mask refined image", img_filtered)
+            cv.waitKey(0)
 
         # Convert to grayscale and find moments on the thresholded img
         gray_img_filtered = cv.cvtColor(img_filtered, cv.COLOR_BGR2GRAY)
         ret, thresh = cv.threshold(gray_img_filtered, 127, 255, 0)
-        contours,hierarchy = cv.findContours(thresh, 1, 2)
 
-        # print(len(contours))
-        a = np.empty([len(contours), 1])
-        center = np.empty([len(contours), 2])
+        if constants.CV_DEBUG:
+            cv.imshow("LED varience mask refined threshold image", thresh)
+            cv.waitKey(0)
+
+        contours, hierarchy = cv.findContours(thresh, 1, 2)
+        
+        #TODO: one can filter out the countours that are not the right size here
+
+
+        ledRGB = np.zeros((len(contours), 3))
+        centers = np.empty([len(contours), 2])
         for i in range(0, len(contours)):
             Mi = cv.moments(contours[i])
             if Mi['m00'] != 0:
-                center[i,0]= Mi['m10']/Mi['m00'] # x coordinate
-                center[i, 1]= Mi['m01']/Mi['m00'] # y coordinate
-                a[i] = cv.contourArea(contours[i])
+                centers[i,0]= Mi['m10']/Mi['m00'] # x coordinate
+                centers[i, 1]= Mi['m01']/Mi['m00'] # y coordinate
 
-        # TODO: Remove, just for debugging
-        # draw circles on the image to show the LEDs
-        for i in range(0, len(contours)):
-            cv.circle(img_filtered, (int(center[i, 0]), int(center[i, 1])), 2, (0, 0, 255), -1)
+                # calculate the radius and rgb value of the led
+                # currently brute forced to center pixel for speed and ease
+                ledRGB[i] = img_filtered[int(centers[i, 1]), int(centers[i, 0])]
 
-        return img_filtered, center, len(contours)
+                # Note: possible way to get the rgb value of the led: 
+                #   Use average of the contourMaskedImg
+                #   Use the center of the contourMaskedImg
+                #   Use kmeans lol
+                # contourMask = np.zeros(img.shape, np.uint8)
+                # cv.drawContours(contourMask, contours, i, (255,255,255), -1)
+                # contourMaskedImg = cv.bitwise_and(img, contourMask)
+
+
+        if(constants.CV_DEBUG):
+            for i in range(0, len(contours)):
+                cv.circle(img_filtered, (int(centers[i, 0]), int(centers[i, 1])), 2, (0, 0, 255), -1)
+                cv.putText(img_filtered, str(ledRGB[i]), (int(centers[i, 0]), int(centers[i, 1])), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv.LINE_AA)
+            cv.imshow('countours', img_filtered)
+            cv.waitKey(0)
+
+        return img_filtered, centers, len(contours), ledRGB
+
     def _cv_getRobotPoints(self):
         # These are hardcoded robot points as follows
         # -----> +x                    #
@@ -137,7 +323,10 @@ class CV:
 
         # Try all transform combinations since there's an ordering invariant and the order of the points is not known
         from itertools import permutations
-        permus = list(permutations(robot_cv_points)) # TODO: setify this for speed
+        permus = list(permutations(robot_cv_points, min(constants.CV_LEDS_PER_ROBOT, len(robot_cv_points)))) # TODO: setify this for speed
+        debugPrint("Permutations: " + str(permus))
+        debugPrint("cv points: "  + str(robot_cv_points))
+        debugPrint("template points: " + str(robot_template_points))
 
         best_transform = None
         most_inliers = -1
@@ -157,21 +346,9 @@ class CV:
 
             return best_transform, most_inliers, True
         except:
+            debugPrint("Error in _cv_getRobotAffineTransform")
             return None, None, False
 
-        # print("Best transform", best_transform)
-        # print("Most inliers", most_inliers)
-
-
-
-
-def get_test_frame():
-    '''
-    This function returns the test.img file.
-    '''
-    path = os.getcwd() + "/test.JPG"
-    # print(path)
-    return cv.imread(path, cv.COLOR_BGR2HSV)
 
 
 def apply_transformation_matrix(img, transformation_matrix):
@@ -197,84 +374,9 @@ def get_robot_coordinates_from_transformation_matrix(transformation_matrix):
     rotation_radians = np.arctan2(transformation_matrix[1,0], transformation_matrix[0,0])
     position_x = transformation_matrix[0,2]
     position_y = transformation_matrix[1,2]
+    debugPrint("rotation_degrees: " + str(rotation_degrees))
+    debugPrint("rotation_radians: " + str(rotation_radians))
+    debugPrint("position_x: " + str(position_x))
+    debugPrint("position_y: " + str(position_y))
 
     return rotation_degrees, rotation_radians, position_x, position_y
-
-''' 
-Main function
-'''
-# if __name__ == "__main__":
-def controller_demo_cv():
-    debug = False # use static image
-
-    pre_image_time = time.time()
-    if debug:
-        image_frame = get_test_frame()
-
-    else:
-        image_frame = get_webcam_image()
-    post_image_time = time.time()
-
-    # debugging HSV values for the test_frame
-    green_rgb = np.uint8([[[0, 255, 0]]])
-    green_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
-    blue_rgb = np.uint8([[[0, 0, 255]]])
-    blue_hsv = cv.cvtColor(green_rgb, cv.COLOR_RGB2HSV)[0][0]
-    # print(green_hsv)
-    h_buffer = 50
-    s_buffer = 10
-    lower = (int(green_hsv[0]) - h_buffer, int(green_hsv[1]) - s_buffer , 0)
-    upper = (int(green_hsv[0]) + h_buffer, int(green_hsv[1]) + s_buffer , 255)
-    lower = (int(blue_hsv[0]) - h_buffer, int(blue_hsv[1]) - s_buffer , 0)
-    upper = (int(blue_hsv[0]) + h_buffer, int(blue_hsv[1]) + s_buffer , 255)
-
-    # HSV is being fucky due to blown out highlights, so hardcode values for testing
-    # lower = (0, 0, 253)
-    lower = (0, 0, 250)
-    upper = (255, 255, 255)
-
-    algo_1 = time.time()
-    masked_img, centers, num_of_centers = extract_LED_positions(image_frame, lower, upper)
-    # cv.imshow("LED masked image", masked_img)
-    # cv.waitKey(0)
-    # cv.imshow("og image", image_frame)
-    # cv.waitKey(0)
-    # print("Number of LEDs found", num_of_centers)
-    # print("LED positions", centers)
-    algo_1_end = time.time()
-    transform, most_inliers, did_it_work = get_robot_affine_transform(np.array(get_robot_points()), centers)
-    if(did_it_work == False):
-        # print("FUCKED CV")
-        return None, None, None
-    algo_2_end = time.time()
-    robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
-    algo_3_end = time.time()
-
-    # print("Number of LEDs found", num_of_centers)
-    # print("Robot rotation (deg)", robot_rotation_deg)
-    # print("Robot position x", robot_pos_x)
-    # print("Robot position y", robot_pos_y)
-
-    test_transformed_image = apply_transformation_matrix(image_frame, transform)
-    algo_4_end = time.time()
-
-    # print("Time to get image", post_image_time - pre_image_time)
-    # print("Time to get LED positions", algo_1_end - algo_1)
-    # print("Time to get robot transform", algo_2_end - algo_1_end)
-    # print("Time to get robot coordinates", algo_3_end - algo_2_end)
-    # print("Time to apply transform", algo_4_end - algo_3_end)
-    # print("total time", algo_4_end - pre_image_time)
-
-    # print("Frame rate: " + str(int(1/(algo_4_end - pre_image_time))) + " Pose: " + str(robot_pos_x) + ", " + str(robot_pos_y) + ", " + str(robot_rotation_deg))
-    # cv.imshow("original image", image_frame)
-    # cv.waitKey(0)
-    # cv.imshow("LED masked image", masked_img)
-    # cv.waitKey(0)
-    # cv.imshow("transformed image", test_transformed_image)
-    # cv.waitKey(0)
-
-    # break
-
-    return robot_pos_x, robot_pos_y, robot_rotation_rad
-
-    
