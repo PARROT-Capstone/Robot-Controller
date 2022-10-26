@@ -119,7 +119,14 @@ std::vector<std::vector<std::vector<double>>> Planner::get_paths()
             std::vector<double> pose;
             for (int k = 0; k < this->paths[i][j].size(); k++)
             {
-                pose.push_back(this->paths[i][j][k] * 10);
+                if (k == 0 || k == 1)
+                {
+                    pose.push_back(this->paths[i][j][k] * 10);
+                }
+                else
+                {
+                    pose.push_back(this->paths[i][j][k]);
+                }
             }
             path.push_back(pose);
         }
