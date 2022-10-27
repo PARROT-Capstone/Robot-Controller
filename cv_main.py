@@ -48,12 +48,18 @@ class CV:
             debugPrint("Computer Vision: No Image Captured")
             return
 
-        self._cv_GenerateRobotPositions(self.latestSandboxImage)
+        if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
+            self._cv_GenerateRobotPositions(self.latestSandboxImage)
+        
+        # also generates robot positions
         self.cv_fiducial.cv_fiducial_generatePalletLocations(self.latestSandboxImage)
 
 
     def cv_GetRobotPositions(self):
-        return self.latestRobotPositions
+        if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
+            return self.latestRobotPositions
+        else:
+            return self.cv_fiducial.cv_fiducial_getRobotPositions()
 
     def cv_GetPalletPositions(self):
         return self.cv_fiducial.cv_fiducial_getPalletPositions()
@@ -69,13 +75,13 @@ class CV:
     def cv_InitComputerVision(self):
         # Initialize the computer vision
         self.latestSandboxImage = self.cv_fiducial.cv_fiducial_setupSandbox(self._cv_CaptureImage())
-        self.cv_fiducial.cv_fiducial_findSandboxSize(self.latestSandboxImage)
 
         print("Computer Vision Field Ready")
         print("Sandbox Size: ", self.cv_fiducial.sandbox_width_mm, self.cv_fiducial.sandbox_height_mm)
 
-        # generate the robot masks dynamically
-        self._cv_GenerateRobotMasks()
+        if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
+            # generate the robot masks dynamically
+            self._cv_GenerateRobotMasks()
     
     def cv_visualize(self):
         # Goals:
@@ -172,7 +178,6 @@ class CV:
 
     def _cv_CaptureImage(self):
         if constants.CV_DEBUG:
-        # if False:
             image = cv.imread(constants.CV_DEBUG_IMAGE_PATH)
             cv.imshow("Source Image", image)
             cv.waitKey(0)
@@ -191,9 +196,31 @@ class CV:
         This function returns the LED positions in the image.
         '''
         
+        #  #apply a varience filter to the image
+        color_filter_lower_bound = constants.CV_ROBOT_VARIENCE_LOWER_BOUND
+        color_filter_upper_bound = constants.CV_ROBOT_VARIENCE_UPPER_BOUND
+        img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(img_hsv, color_filter_lower_bound, color_filter_upper_bound)
+        img_filtered = cv.bitwise_and(img, img, mask=mask)
+
+        if constants.CV_DEBUG:
+            cv.imshow("LED varience masked image", img_filtered)
+            cv.waitKey(0)
+
+        # erode and dilate to remove noise
+        kernel = np.ones((3,3),np.uint8)
+        img_filtered = cv.erode(img_filtered,kernel,iterations = 1)
+        img_filtered = cv.dilate(img_filtered,kernel,iterations = 3)
+
+        if constants.CV_DEBUG:
+            cv.imshow("LED varience mask refined image", img_filtered)
+            cv.waitKey(0)
+
+        
         # Find all circles that meet a certain size, and create a mask
-        mask = np.zeros(img.shape[:2], np.uint8)
-        img_filtered_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        mask = np.zeros(img_filtered.shape[:2], np.uint8)
+        img_filtered_gray = cv.cvtColor(img_filtered, cv.COLOR_BGR2GRAY)
+        img_filtered_gray_text = img_filtered_gray.copy()
         circles = cv.HoughCircles(\
             img_filtered_gray, \
             cv.HOUGH_GRADIENT, \
@@ -213,66 +240,48 @@ class CV:
                 # draw the circle in the output image, then draw a rectangle
                 # corresponding to the center of the circle
                 if constants.CV_DEBUG:
-                    cv.circle(img_filtered_gray, (x, y), r, (0, 255, 0), 4)
-                    cv.rectangle(img_filtered_gray, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-                    cv.putText(img_filtered_gray, str(r), (x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv.LINE_AA)
+                    cv.circle(img_filtered_gray_text, (x, y), r, (0, 255, 0), 4)
+                    cv.rectangle(img_filtered_gray_text, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+                    cv.putText(img_filtered_gray_text, str(r), (x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv.LINE_AA)
             if constants.CV_DEBUG:
                 # show the output image
-                cv.imshow("output", img_filtered_gray)
+                cv.imshow("circles found", img_filtered_gray_text)
                 cv.waitKey(0)
         else: 
             debugPrint("No circles found")
         
         # Apply the mask to the image
-        circleMasked = cv.bitwise_and(img, img, mask=mask) 
+        img_filtered_gray = cv.bitwise_and(img_filtered_gray, img_filtered_gray, mask=mask) 
         if constants.CV_DEBUG:
-            cv.imshow("Masked Image", circleMasked)
-            cv.waitKey(0)
-
-        # apply a varience filter to the image
-        color_filter_lower_bound = constants.CV_ROBOT_VARIENCE_LOWER_BOUND
-        color_filter_upper_bound = constants.CV_ROBOT_VARIENCE_UPPER_BOUND
-        img_hsv = cv.cvtColor(circleMasked, cv.COLOR_BGR2HSV)
-        mask = cv.inRange(img_hsv, color_filter_lower_bound, color_filter_upper_bound)
-        img_filtered = cv.bitwise_and(img, img, mask=mask)
-
-        if constants.CV_DEBUG:
-            cv.imshow("LED varience masked image", img_filtered)
-            cv.waitKey(0)
-
-        # erode and dilate to remove noise
-        kernel = np.ones((5,5),np.uint8)
-        img_filtered = cv.erode(img_filtered,kernel,iterations = 1)
-        img_filtered = cv.dilate(img_filtered,kernel,iterations = 3)
-
-        if constants.CV_DEBUG:
-            cv.imshow("LED varience mask refined image", img_filtered)
+            cv.imshow("Masked Image with circles", img_filtered_gray)
             cv.waitKey(0)
 
         # Convert to grayscale and find moments on the thresholded img
-        gray_img_filtered = cv.cvtColor(img_filtered, cv.COLOR_BGR2GRAY)
-        ret, thresh = cv.threshold(gray_img_filtered, 127, 255, 0)
+        # gray_img_filtered = cv.cvtColor(img_filtered, cv.COLOR_BGR2GRAY)
+        ret, thresh = cv.threshold(img_filtered_gray, 127, 255, 0)
 
         if constants.CV_DEBUG:
             cv.imshow("LED varience mask refined threshold image", thresh)
             cv.waitKey(0)
 
         contours, hierarchy = cv.findContours(thresh, 1, 2)
-        
-        #TODO: one can filter out the countours that are not the right size here
-
 
         ledRGB = np.zeros((len(contours), 3))
         centers = np.empty([len(contours), 2])
+        areas = np.empty([len(contours), 1])
         for i in range(0, len(contours)):
             Mi = cv.moments(contours[i])
-            if Mi['m00'] != 0:
+            area = cv.contourArea(contours[i])
+            print("Area: ", area, "\n\n")
+            # jank in range function
+            if Mi['m00'] != 0 and (min(constants.CV_MIN_LED_AREA, constants.CV_MAX_LED_AREA) < area < max(constants.CV_MIN_LED_AREA, constants.CV_MAX_LED_AREA)):
                 centers[i,0]= Mi['m10']/Mi['m00'] # x coordinate
                 centers[i, 1]= Mi['m01']/Mi['m00'] # y coordinate
 
                 # calculate the radius and rgb value of the led
                 # currently brute forced to center pixel for speed and ease
                 ledRGB[i] = img_filtered[int(centers[i, 1]), int(centers[i, 0])]
+                areas[i] = area
 
                 # Note: possible way to get the rgb value of the led: 
                 #   Use average of the contourMaskedImg
@@ -285,11 +294,13 @@ class CV:
 
         if(constants.CV_DEBUG):
             for i in range(0, len(contours)):
-                cv.circle(img_filtered, (int(centers[i, 0]), int(centers[i, 1])), 2, (0, 0, 255), -1)
-                cv.putText(img_filtered, str(ledRGB[i]), (int(centers[i, 0]), int(centers[i, 1])), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv.LINE_AA)
-            cv.imshow('countours', img_filtered)
+                cv.circle(img_filtered_gray, (int(centers[i, 0]), int(centers[i, 1])), 2, (0, 0, 255), -1)
+                cv.putText(img_filtered_gray, str(ledRGB[i]), (int(centers[i, 0]), int(centers[i, 1])), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv.LINE_AA)
+                # cv.putText(img_filtered_gray, str(areas[i]), (int(centers[i, 0]), int(centers[i, 1])), cv.FONT_HERSHEY_SIMPLEX,q 1, (255, 255, 255), 1, cv.LINE_AA) 
+            cv.imshow('countours', img_filtered_gray)
             cv.waitKey(0)
-
+        
+        return
         return img_filtered, centers, len(contours), ledRGB
 
     def _cv_getRobotPoints(self):

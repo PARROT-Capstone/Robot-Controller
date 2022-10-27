@@ -30,29 +30,7 @@ class CV_Fiducial:
             print("No sandbox corners detected.")
             time.sleep(1)
 
-        # Sort them
-        top_left_id, top_right_id, bottom_left_id, bottom_right_id = self._cv_fiducial_findCornerFiducialOrdering()
-
-        # Calculate the Sandbox's Aspect Ratio
-        length_top = self._cv_fiducial_distanceBetweenSandboxFiducials(top_left_id, top_right_id)
-        length_bottom = self._cv_fiducial_distanceBetweenSandboxFiducials(bottom_left_id, bottom_right_id)
-        length_left = self._cv_fiducial_distanceBetweenSandboxFiducials(top_left_id, bottom_left_id)
-        length_right = self._cv_fiducial_distanceBetweenSandboxFiducials(top_right_id, bottom_right_id)
-
-        debugPrint("Top: " + str(length_top))
-        debugPrint("Bottom: " + str(length_bottom))
-        debugPrint("Left: " + str(length_left))
-        debugPrint("Right: " + str(length_right))
-
-        aspectRatioTop = (length_top + length_bottom) / 2
-        aspectRatioSide = (length_left + length_right) / 2
-        
-        #scale to something reasonable
-        multiplier = 5000 / (aspectRatioTop + aspectRatioSide) / 2
-        aspectRatioTop = int(aspectRatioTop * multiplier)
-        aspectRatioSide = int(aspectRatioSide * multiplier)
-
-        sandboxImage = self.cv_fiducial_flattenSandboxImage(image_frame, aspectRatioTop, aspectRatioSide)
+        sandboxImage = self.cv_fiducial_flattenSandboxImage(image_frame)
 
         if constants.CV_DEBUG:
             cv.imshow("Sandbox Init Image", sandboxImage)
@@ -60,14 +38,6 @@ class CV_Fiducial:
 
         return sandboxImage
 
-        
-    def _cv_fiducial_distanceBetweenSandboxFiducials(self, fiducialId1, fiducialId2):
-        # calculate the distance between two fiducials
-        x_distance = self.cv_fiducial_cornerMarkerDict[fiducialId1][7][0] - self.cv_fiducial_cornerMarkerDict[fiducialId2][7][0]
-        y_distance = self.cv_fiducial_cornerMarkerDict[fiducialId1][7][1] - self.cv_fiducial_cornerMarkerDict[fiducialId2][7][1]
-        z_distance = self.cv_fiducial_cornerMarkerDict[fiducialId1][7][2] - self.cv_fiducial_cornerMarkerDict[fiducialId2][7][2]
-
-        return np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
 
 
     def _cv_fiducial_detectSandboxCorners(self, image_frame):
@@ -109,7 +79,8 @@ class CV_Fiducial:
                     rvec = rvec.flatten()
                     tvec = tvec.flatten()
                     
-                    debugPrint("Fiducial ID, tvec: " + str(fiducial_id) + ", " + ", " + str(tvec))
+                    # debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(rvec))
+                    debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(360 * rvec / (2*np.pi)))
 
                     if constants.CV_DEBUG:
                         # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
@@ -151,8 +122,30 @@ class CV_Fiducial:
 
                 centerX = int((topLeft[0] + bottomRight[0]) / 2.0)
                 centerY = int((topLeft[1] + bottomRight[1]) / 2.0)
-         
-                self.cv_fiducial_markerDict[fiducial_id] = (centerX, centerY, topLeft, topRight, bottomRight, bottomLeft)
+
+                orientation = None
+                # reserve the extra processing for the robot fiducials
+                if fiducial_id in constants.CORNER_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:
+                    # estimate the pose of the marker
+                    rvec, tvec, markerPoints = cv.aruco.estimatePoseSingleMarkers(\
+                        marker_corner, \
+                        constants.FIDUCIAL_WIDTH_MM, \
+                        constants.CAMERA_MATRIX, \
+                        constants.DISTORTION_COEFFICIENTS)
+                    
+                    rvec = rvec.flatten()
+                    tvec = tvec.flatten()
+
+                    orientation = rvec[2]
+                    
+                    debugPrint("Fiducial ID, tvec: " + str(fiducial_id) + ", " + ", " + str(tvec))
+
+                    if constants.CV_DEBUG:
+                        # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
+                        cv.drawFrameAxes(sandbox_image, constants.CAMERA_MATRIX, constants.DISTORTION_COEFFICIENTS, rvec, tvec, 20)
+                
+                
+                self.cv_fiducial_markerDict[fiducial_id] = (centerX, centerY, topLeft, topRight, bottomRight, bottomLeft, orientation)
 
     '''
     This function finds the correct fiducial locations and returns them in the correct order.
@@ -189,56 +182,7 @@ class CV_Fiducial:
 
         return top_left_id, top_right_id, bottom_left_id, bottom_right_id
 
-    def cv_fiducial_findSandboxSize(self, sandbox_image):
-        # calculate the number of pixels per fiducial
-
-        arucoDict = cv.aruco.Dictionary_get(cv.aruco.DICT_4X4_50)
-        arucoParams = cv.aruco.DetectorParameters_create()
-        corner_list, fiducial_ids, _ = cv.aruco.detectMarkers(sandbox_image, arucoDict, parameters=arucoParams)
-        sum_of_fiducial_pixels = 0
-        num_fiducials_incr = 0
-         
-
-        if len(corner_list) > 0:
-            fiducial_ids = fiducial_ids.flatten()
-            for (marker_corner, fiducial_id) in zip(corner_list, fiducial_ids):
-                if fiducial_id in constants.CORNER_FIDUCIALS:
-
-                    # extract the marker corners (which are always returned in
-                    # top-left, top-right, bottom-right, and bottom-left order)
-                    corner_list = marker_corner.reshape((4, 2))
-                    (topLeft, topRight, bottomRight, bottomLeft) = corner_list
-                    # convert each of the (x, y)-coordinate pairs to integers
-                    topRight = (int(topRight[0]), int(topRight[1]))
-                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-                    topLeft = (int(topLeft[0]), int(topLeft[1]))
-
-                    centerX = int((topLeft[0] + bottomRight[0]) / 2.0)
-                    centerY = int((topLeft[1] + bottomRight[1]) / 2.0)
-
-                    # top left to top right x distance
-                    sum_of_fiducial_pixels += abs(topLeft[0] - topRight[0])
-                    # top left to bottom left y distance
-                    sum_of_fiducial_pixels += abs(topLeft[1] - bottomLeft[1])
-                    num_fiducials_incr += 2
-
-                    self.cv_fiducial_warpedCornerMarkerDict[fiducial_id] = (centerX, centerY, topLeft, topRight, bottomRight, bottomLeft)
-
-        
-                    
-        average_fiducial_pixels = sum_of_fiducial_pixels / num_fiducials_incr
-        self.mm_per_pixel = constants.FIDUCIAL_WIDTH_MM/average_fiducial_pixels
-        
-        # calculate the sandbox size in mm
-        top_left_id, top_right_id, bottom_left_id, bottom_right_id = self._cv_fiducial_findCornerFiducialOrdering()
-        print("keys: ", self.cv_fiducial_warpedCornerMarkerDict.keys())
-        self.sandbox_width_mm = self.cv_fiducial_warpedCornerMarkerDict[top_right_id][2][0] - self.cv_fiducial_warpedCornerMarkerDict[top_left_id][3][0] * self.mm_per_pixel
-        self.sandbox_height_mm = self.cv_fiducial_warpedCornerMarkerDict[bottom_left_id][2][1] - self.cv_fiducial_warpedCornerMarkerDict[top_left_id][5][1] * self.mm_per_pixel
-        debugPrint("Sandbox size (w,h): " + str(self.sandbox_width_mm) + " x " + str(self.sandbox_height_mm) + " mm")
-
-
-    def cv_fiducial_flattenSandboxImage(self, image_frame, height = 0, width = 0):
+    def cv_fiducial_flattenSandboxImage(self, image_frame, height = constants.CV_SANDBOX_WIDTH, width = constants.CV_SANDBOX_HEIGHT):
         
         # override after initial sandbox size is found
         if (self.sandbox_width_mm != None and self.sandbox_height_mm != None):
@@ -280,3 +224,15 @@ class CV_Fiducial:
                 foundPalletFiducialIDs[fiducialID] = self.cv_fiducial_markerDict[fiducialID][0:2]
         
         return foundPalletFiducialIDs
+
+    def cv_fiducial_getRobotPositions(self):
+        robotFiducialIDs = constants.ROBOT_FIDUCIALS
+        foundRobotFiducialIDs = {}
+
+        for fiducialID in robotFiducialIDs:
+            if fiducialID in self.cv_fiducial_markerDict.keys():
+                #TODO: Cleanup
+                foundRobotFiducialIDs[fiducialID] = (self.cv_fiducial_markerDict[fiducialID][0:2], self.cv_fiducial_markerDict[fiducialID][-1])
+
+
+        pass
