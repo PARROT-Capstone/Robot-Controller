@@ -2,6 +2,7 @@
 '''
 from dis import code_info
 from email.mime import image
+import math
 from tkinter import E
 from turtle import position
 from unicodedata import name
@@ -136,13 +137,18 @@ class CV_Fiducial:
                         constants.CAMERA_MATRIX, \
                         constants.DISTORTION_COEFFICIENTS)
                     
+
                     rvec = rvec.flatten()
                     tvec = tvec.flatten()
 
-                    orientation = rvec[2]
+                    rotMat = cv.Rodrigues(rvec)[0]
+                    rot = math.atan2(rotMat[1,0], rotMat[0,0])
+                    # Use the fiducial corners to determine the orientation of the robot
+                    orientation = math.atan2(topLeft[1] - bottomLeft[1], topLeft[0] - bottomLeft[0])
+                    orientation += math.pi/2
+                    orientation = math.atan2(math.sin(orientation), math.cos(orientation))
+                    orientation = orientation * -1 # negate the angle to make it match the robot's coordinate system
                     
-                    debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(360 * rvec / (2*np.pi)))
-
                     if constants.CV_DEBUG:
                         # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
                         cv.drawFrameAxes(sandbox_image, constants.CAMERA_MATRIX, constants.DISTORTION_COEFFICIENTS, rvec, tvec, 20)
@@ -224,7 +230,7 @@ class CV_Fiducial:
         # Find and pack the found pallets from the possible pallet fiducials
         for fiducialID in palletFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                pose = self.cv_fiducial_markerDict[fiducialID][0:2] + self.cv_fiducial_markerDict[fiducialID][-1]
+                pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [0]
                 foundPalletFiducialIDs.append(pose)
         
         return foundPalletFiducialIDs
@@ -235,7 +241,7 @@ class CV_Fiducial:
 
         for fiducialID in robotFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                pose = self.cv_fiducial_markerDict[fiducialID][0:2] + self.cv_fiducial_markerDict[fiducialID][-1]
+                pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [self.cv_fiducial_markerDict[fiducialID][6]]
                 foundRobotFiducialIDs.append(pose)
 
         return foundRobotFiducialIDs  

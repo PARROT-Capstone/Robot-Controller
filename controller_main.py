@@ -24,12 +24,13 @@ dt = 1e-6
 # TODO: Electromagnet Commands
 
 class Controller:
-    def __init__(self, robotId):
+    def __init__(self, robotId, robotPath):
         self.startTime = time.time()
         self.robotId = robotId
         # path is (x, y, theta, relative_time)
-        self.robotPath = mainHelper.Main_getRobotPaths(self.robotId)
+        self.robotPath = robotPath
         if (self.robotPath is None or len(self.robotPath) < 2):
+            print("Robot Path: ", self.robotPath)
             raise Exception('Error with Robot path')
         self.robotError = (0, 0, 0)
         self.errorDiff_robot = (0, 0, 0)

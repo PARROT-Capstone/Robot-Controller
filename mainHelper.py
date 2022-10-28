@@ -1,5 +1,6 @@
 import math
 import constants
+import requests
 
 def Main_getRobotCounts():
     return 1
@@ -27,7 +28,7 @@ def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
     rightPWM = min(max(rightPWM, 0), 180)
 
     # TODO: change robot url
-    robot_url = "http://172.26.171.154"
+    robot_url = "http://parrot-robot1.wifi.local.cmu.edu"
     json = {"dtype": "speed", 
                 "servo1": int(leftPWM),
                 "servo2": int(rightPWM)

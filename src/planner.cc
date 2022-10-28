@@ -11,6 +11,7 @@
 
 #include "planner.hh"
 #include <cmath>
+#include <math.h>
 
 Planner::Planner(int num_robots)
 {
@@ -130,6 +131,11 @@ std::vector<std::vector<std::vector<double>>> Planner::get_paths()
                 if (k == 0 || k == 1)
                 {
                     pose.push_back(this->paths[i][j][k] * 10);
+                }
+                else if (k == 2)
+                {
+                    // convert theta from 0 to 2pi to -pi to pi using atan2
+                    pose.push_back(atan2(sin(this->paths[i][j][k]), cos(this->paths[i][j][k])));
                 }
                 else
                 {

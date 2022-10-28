@@ -23,7 +23,7 @@ cap = cv.VideoCapture(constants.WEBCAM_ID)
 
 class CV:
     def __init__(self):
-        # self.cv_fiducial = CV_Fiducial()
+        self.cv_fiducial = CV_Fiducial()
         self.robotCount = None
         self.robotRGBMasks = None
         self.visualizerField = None
@@ -77,34 +77,52 @@ class CV:
         self.latestSandboxImage = self.cv_fiducial.cv_fiducial_setupSandbox(self._cv_CaptureImage())
 
         print("Computer Vision Field Ready")
-        print("Sandbox Size: ", self.cv_fiducial.sandbox_width_mm, self.cv_fiducial.sandbox_height_mm)
 
         if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
             # generate the robot masks dynamically
             self._cv_GenerateRobotMasks()
     
-    def cv_visualize(self):
+    def cv_visualize(self, robotPaths):
         # Goals:
         # 1. Place a vector at each robot's position
         # 2. Place a centroid at each pallet's position
         # 3. Visualize the current path (assume it's a dict with keys being robot ID)
         # 4. Visualize the actual path that the robot has taken 
 
-        if self.visualizerField is None:
-            if self.latestSandboxImage is None:
-                return # wait for a valid image to be captured
-            self.visualizerField = self.latestImageWarped.copy()
+        # if self.visualizerField is None:
+        #     if self.latestSandboxImage is None:
+        #         return # wait for a valid image to be captured
+        self.visualizerField = self.latestSandboxImage.copy()
 
+        robotPositions = None
+        if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
+            robotPositions = self.latestRobotPositions
+        else:
+            robotPositions = self.cv_fiducial.cv_fiducial_getRobotPositions()
 
         # 1. Place a vector at each robot's position
-        for robotId in self.latestRobotPositions.keys():
-            robot_pos_x, robot_pos_y, robot_rotation_rad = self.latestRobotPositions[robotId]
-            cv.arrowedLine(self.visualizerField, (robot_pos_x, robot_pos_y), (robot_pos_x + 10*np.cos(robot_rotation_rad), robot_pos_y + 10*np.sin(robot_rotation_rad)), (0, 0, 255), 2)
+        for robotPose in robotPositions:
+            (robot_pos_x, robot_pos_y, robot_rotation_rad) = robotPose
+            start_point = (int(robot_pos_x), int(robot_pos_y))
+            end_point = (int(robot_pos_x + 100*np.cos(robot_rotation_rad)), int(robot_pos_y - 100*np.sin(robot_rotation_rad)))
+            cv.arrowedLine(self.visualizerField, start_point, end_point, (255, 0, 0), 2)
+
         
-        # 2. Place a centroid at each pallet's position
-        for fiducialId in self.latestFiducialPositions.keys():
-            fiducial_pos_x, fiducial_pos_y = self.latestFiducialPositions[fiducialId]
-            cv.circle(self.visualizerField, (fiducial_pos_x, fiducial_pos_y), 2, (0, 255, 0), 2)
+        # 2. Place an arrow at each pallet's position 
+        palletPositions = self.cv_fiducial.cv_fiducial_getPalletPositions()
+        for palletPose in palletPositions:
+            (pallet_pos_x, pallet_pos_y, pallet_rotation_rad) = palletPose
+            start_point = (int(pallet_pos_x), int(pallet_pos_y))
+            end_point = (int(pallet_pos_x + 100*np.cos(pallet_rotation_rad)), int(pallet_pos_y - 100*np.sin(pallet_rotation_rad)))
+            cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 0, 255), 2)
+        
+        # 3. Visualize the current path (assume it's a dict with keys being robot ID)
+        for robotPath in robotPaths:
+            for pose in robotPath:
+                (robot_pos_x, robot_pos_y, robot_rotation_rad, time, tag) = pose
+                start_point = (int(robot_pos_x), int(robot_pos_y))
+                end_point = (int(robot_pos_x + 20*np.cos(robot_rotation_rad)), int(robot_pos_y - 20*np.sin(robot_rotation_rad)))
+                cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 255, 0), 2)
         
         if(constants.CV_VISUALIZE_PATH):
             pass
@@ -142,7 +160,6 @@ class CV:
             if did_it_work == False:
                 return
             robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
-            print("Robot Position: ", robot_pos_x, robot_pos_y, robot_rotation_deg)
             robotPositions[robotId] = (robot_pos_x, robot_pos_y, robot_rotation_rad)
         
         self.latestRobotPositions = robotPositions

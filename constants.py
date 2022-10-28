@@ -7,22 +7,22 @@ import numpy as np
 '''
 Computer Vision Constants
 '''
-CV_DEBUG = True
+CV_DEBUG = False
 CV_USE_CAMERA = True
 
 # visualizer constants
 CV_VISUALIZE_PATH = False
 CV_VISUALIZE_ACTUAL_PATH = False
 
-CV_LOCALIZE_ROBOTS_FIDUCIALS = False
+CV_LOCALIZE_ROBOTS_FIDUCIALS = True
 
 # The fiducial marker indexes for the sandbox perimeter and goals. 
 # Ordering is not important.
 CORNER_FIDUCIALS = [1,4,7,10]
 PALLET_FIDUCIALS = [2]
-ROBOT_FIDUCIALS = [5]
+ROBOT_FIDUCIALS = [0, 3]
 
-WEBCAM_ID = 0
+WEBCAM_ID = 1
 
 path = os.getcwd()
 CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
