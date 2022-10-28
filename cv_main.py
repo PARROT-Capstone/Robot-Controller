@@ -23,7 +23,7 @@ cap = cv.VideoCapture(constants.WEBCAM_ID)
 
 class CV:
     def __init__(self):
-        self.cv_fiducial = CV_Fiducial()
+        # self.cv_fiducial = CV_Fiducial()
         self.robotCount = None
         self.robotRGBMasks = None
         self.visualizerField = None

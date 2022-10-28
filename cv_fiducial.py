@@ -219,21 +219,23 @@ class CV_Fiducial:
 
     def cv_fiducial_getPalletPositions(self):
         palletFiducialIDs = constants.PALLET_FIDUCIALS
-        foundPalletFiducialIDs = {}
+        foundPalletFiducialIDs = []
 
         # Find and pack the found pallets from the possible pallet fiducials
         for fiducialID in palletFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                foundPalletFiducialIDs[fiducialID] = self.cv_fiducial_markerDict[fiducialID][0:2]
+                pose = self.cv_fiducial_markerDict[fiducialID][0:2] + self.cv_fiducial_markerDict[fiducialID][-1]
+                foundPalletFiducialIDs.append(pose)
         
         return foundPalletFiducialIDs
 
     def cv_fiducial_getRobotPositions(self):
         robotFiducialIDs = constants.ROBOT_FIDUCIALS
-        foundRobotFiducialIDs = {}
+        foundRobotFiducialIDs = []
 
         for fiducialID in robotFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                foundRobotFiducialIDs[fiducialID] = (self.cv_fiducial_markerDict[fiducialID][0:2], self.cv_fiducial_markerDict[fiducialID][-1])
+                pose = self.cv_fiducial_markerDict[fiducialID][0:2] + self.cv_fiducial_markerDict[fiducialID][-1]
+                foundRobotFiducialIDs.append(pose)
 
         return foundRobotFiducialIDs  
