@@ -80,11 +80,10 @@ class CV_Fiducial:
                     tvec = tvec.flatten()
                     
                     # debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(rvec))
-                    debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(360 * rvec / (2*np.pi)))
 
-                    if constants.CV_DEBUG:
-                        # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
-                        cv.drawFrameAxes(image_frame_annotated, constants.CAMERA_MATRIX, constants.DISTORTION_COEFFICIENTS, rvec, tvec, 20)
+                    # if constants.CV_DEBUG:
+                    #     # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
+                    #     cv.drawFrameAxes(image_frame_annotated, constants.CAMERA_MATRIX, constants.DISTORTION_COEFFICIENTS, rvec, tvec, 20)
                 
                 self.cv_fiducial_cornerMarkerDict[fiducial_id] = (centerX, centerY, topLeft, topRight, bottomRight, bottomLeft, rvec, tvec)
 
@@ -92,6 +91,8 @@ class CV_Fiducial:
             return False
 
         if constants.CV_DEBUG:
+            for fiducial_id in self.cv_fiducial_cornerMarkerDict.keys():
+                cv.circle(image_frame_annotated, self.cv_fiducial_cornerMarkerDict[fiducial_id][0:2], 4, (0, 0, 255), -1)
             cv.imshow("Corner Pose", image_frame_annotated)
             cv.waitKey(0)
 
@@ -106,6 +107,8 @@ class CV_Fiducial:
         arucoDict = cv.aruco.Dictionary_get(cv.aruco.DICT_4X4_50)
         arucoParams = cv.aruco.DetectorParameters_create()
         corner_list, fiducial_ids, _ = cv.aruco.detectMarkers(sandbox_image, arucoDict, parameters=arucoParams)
+
+        # debugPrint("Fiducial IDs detected in field: " + str(fiducial_ids))
 
         if len(corner_list) > 0:
             fiducial_ids = fiducial_ids.flatten()
@@ -125,7 +128,7 @@ class CV_Fiducial:
 
                 orientation = None
                 # reserve the extra processing for the robot fiducials
-                if fiducial_id in constants.CORNER_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:
+                if fiducial_id in constants.ROBOT_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:
                     # estimate the pose of the marker
                     rvec, tvec, markerPoints = cv.aruco.estimatePoseSingleMarkers(\
                         marker_corner, \
@@ -138,7 +141,7 @@ class CV_Fiducial:
 
                     orientation = rvec[2]
                     
-                    debugPrint("Fiducial ID, tvec: " + str(fiducial_id) + ", " + ", " + str(tvec))
+                    debugPrint("Fiducial ID, rvec: " + str(fiducial_id) + ", " + ", " + str(360 * rvec / (2*np.pi)))
 
                     if constants.CV_DEBUG:
                         # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
@@ -203,10 +206,10 @@ class CV_Fiducial:
         top_left_id, top_right_id, bottom_left_id, bottom_right_id = self._cv_fiducial_findCornerFiducialOrdering()
 
         fiducial_corners = np.array([
-            self.cv_fiducial_cornerMarkerDict[top_left_id][2],
-            self.cv_fiducial_cornerMarkerDict[top_right_id][3],
-            self.cv_fiducial_cornerMarkerDict[bottom_right_id][4],
-            self.cv_fiducial_cornerMarkerDict[bottom_left_id][5]], dtype = "float32")
+            self.cv_fiducial_cornerMarkerDict[top_left_id][0:2],
+            self.cv_fiducial_cornerMarkerDict[top_right_id][0:2],
+            self.cv_fiducial_cornerMarkerDict[bottom_right_id][0:2],
+            self.cv_fiducial_cornerMarkerDict[bottom_left_id][0:2]], dtype = "float32")
 
         M = cv.getPerspectiveTransform(fiducial_corners, destination_corners)
         sandbox_image = cv.warpPerspective(image_frame, M, (height + (buffer_pixels_height * 2), width + (buffer_pixels_width * 2)))
@@ -231,8 +234,6 @@ class CV_Fiducial:
 
         for fiducialID in robotFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                #TODO: Cleanup
                 foundRobotFiducialIDs[fiducialID] = (self.cv_fiducial_markerDict[fiducialID][0:2], self.cv_fiducial_markerDict[fiducialID][-1])
 
-
-        pass
+        return foundRobotFiducialIDs  

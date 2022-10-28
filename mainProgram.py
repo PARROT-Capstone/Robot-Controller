@@ -17,6 +17,7 @@ while True:
     start = time.time()
     computerVision.cv_runLocalizer()
     robotPoses = computerVision.cv_GetRobotPositions()
+    print(robotPoses)
     end = time.time()
     # fiducialPoses = computerVision.cv_GetPalletPositions()
     # # for i in range(mainHelper.Main_getRobotCounts()):
@@ -24,4 +25,4 @@ while True:
     # #     velLeftLinear, velRightLinear = linearWheelVelocities
     # #     mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear)
     # computerVision.cv_visualize()
-    print("Time: ", end - start)
+    # print("Time: ", end - start)

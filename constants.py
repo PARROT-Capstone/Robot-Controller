@@ -7,19 +7,22 @@ import numpy as np
 '''
 Computer Vision Constants
 '''
-CV_DEBUG = True
+CV_DEBUG = False
+CV_USE_CAMERA = True
 
 # visualizer constants
 CV_VISUALIZE_PATH = False
 CV_VISUALIZE_ACTUAL_PATH = False
 
+CV_LOCALIZE_ROBOTS_FIDUCIALS = False
+
 # The fiducial marker indexes for the sandbox perimeter and goals. 
 # Ordering is not important.
 CORNER_FIDUCIALS = [1,4,7,10]
 PALLET_FIDUCIALS = [1,2,4,5,7,8,10]
-ROBOT_FIDUCIALS = []
+ROBOT_FIDUCIALS = [2,5,8]
 
-WEBCAM_ID = 0
+WEBCAM_ID = 1
 
 path = os.getcwd()
 CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
@@ -27,11 +30,9 @@ CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
 # The physical real world width of the fiducial markers in mm.
 FIDUCIAL_WIDTH_MM = 30 # TODO: Just a guess
 
-CV_SANDBOX_IMAGE_BUFFER_PERCENT = 0.0 # How much extra to scale the image by when cropping the sandbox
+CV_SANDBOX_IMAGE_BUFFER_PERCENT = 0.1 # How much extra to scale the image by when cropping the sandbox
 CV_SANDBOX_HEIGHT = 1000 # mm
 CV_SANDBOX_WIDTH = 1500 # mm
-
-CV_LOCALIZE_ROBOTS_FIDUCIALS = False
 
 CAMERA_MATRIX = np.array([[2.03722817e+03, 0.00000000e+00, 1.50860597e+03], \
     [0.00000000e+00, 2.03842706e+03, 2.00969117e+03], \
@@ -54,7 +55,7 @@ if CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
     CV_ROBOT_VARIENCE_UPPER_BOUND = (255, 255, 255)
 
     CV_MIN_LED_AREA = 30
-    CV_MAX_LED_AREA = 100
+    CV_MAX_LED_AREA = 90
 
 def debugPrint(debugMsg):
     if CV_DEBUG:

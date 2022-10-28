@@ -139,6 +139,8 @@ class CV:
         robotPositions = {}
         for robotId in robotIdPixelDict.keys():
             transform, most_inliers, did_it_work = self._cv_getRobotAffineTransform(self._cv_getRobotPoints(), robotIdPixelDict[robotId])
+            if did_it_work == False:
+                return
             robot_rotation_deg, robot_rotation_rad, robot_pos_x, robot_pos_y = get_robot_coordinates_from_transformation_matrix(transform)
             print("Robot Position: ", robot_pos_x, robot_pos_y, robot_rotation_deg)
             robotPositions[robotId] = (robot_pos_x, robot_pos_y, robot_rotation_rad)
@@ -177,11 +179,12 @@ class CV:
 
 
     def _cv_CaptureImage(self):
-        if constants.CV_DEBUG:
+        if constants.CV_USE_CAMERA == False:
             image = cv.imread(constants.CV_DEBUG_IMAGE_PATH)
             cv.imshow("Source Image", image)
             cv.waitKey(0)
             return image
+
         ret, frame = cap.read()
         while np.shape(frame) == ():
             ret, frame = cap.read()
@@ -258,7 +261,7 @@ class CV:
 
         # Convert to grayscale and find moments on the thresholded img
         # gray_img_filtered = cv.cvtColor(img_filtered, cv.COLOR_BGR2GRAY)
-        ret, thresh = cv.threshold(img_filtered_gray, 127, 255, 0)
+        ret, thresh = cv.threshold(img_filtered_gray, 50, 255, 0)
 
         if constants.CV_DEBUG:
             cv.imshow("LED varience mask refined threshold image", thresh)
@@ -272,7 +275,6 @@ class CV:
         for i in range(0, len(contours)):
             Mi = cv.moments(contours[i])
             area = cv.contourArea(contours[i])
-            print("Area: ", area, "\n\n")
             # jank in range function
             if Mi['m00'] != 0 and (min(constants.CV_MIN_LED_AREA, constants.CV_MAX_LED_AREA) < area < max(constants.CV_MIN_LED_AREA, constants.CV_MAX_LED_AREA)):
                 centers[i,0]= Mi['m10']/Mi['m00'] # x coordinate
@@ -300,7 +302,6 @@ class CV:
             cv.imshow('countours', img_filtered_gray)
             cv.waitKey(0)
         
-        return
         return img_filtered, centers, len(contours), ledRGB
 
     def _cv_getRobotPoints(self):
@@ -333,32 +334,63 @@ class CV:
         robot_template_points = np.array(self._cv_getRobotPoints())
 
         # Try all transform combinations since there's an ordering invariant and the order of the points is not known
-        from itertools import permutations
-        permus = list(permutations(robot_cv_points, min(constants.CV_LEDS_PER_ROBOT, len(robot_cv_points)))) # TODO: setify this for speed
-        debugPrint("Permutations: " + str(permus))
-        debugPrint("cv points: "  + str(robot_cv_points))
-        debugPrint("template points: " + str(robot_template_points))
+        from itertools import permutations, combinations
+
+        # TODO: setify this for speed
+        permusToTry = list(permutations(robot_cv_points, min(constants.CV_LEDS_PER_ROBOT, len(robot_cv_points)))) 
+        permusToMatch = list(combinations(robot_template_points, min(constants.CV_LEDS_PER_ROBOT, len(robot_cv_points))))
+        # debugPrint("Permutations: " + str(permus))
+        # debugPrint("cv points: "  + str(robot_cv_points))
+        # debugPrint("template points: " + str(robot_template_points))
 
         best_transform = None
         most_inliers = -1
+        workedAtLeastOnce = False
 
-        try:
-            for p in permus:
-                transform, inliers = cv.estimateAffinePartial2D(np.array(p), robot_template_points) #TODO: there are other params like condience and refine iters that can make this better
-                if np.count_nonzero(inliers) > most_inliers:
-                    best_transform = transform
-                    most_inliers = np.count_nonzero(inliers)
 
-            position_x_offset = 34.0 # this is the offset from the center of the robot to LED0
-            position_y_offset = 20.0 # this is the offset from the center of the robot to LED0
+        for permToTry in permusToTry:
+            for permToMatch in permusToMatch:
+                try:
+                    transform, inliers = cv.estimateAffinePartial2D(np.array(permToTry), np.array(permToMatch)) #todo: there are other params like condience and refine iters that can make this better
+                    if np.count_nonzero(inliers) > most_inliers:
+                        best_transform = transform
+                        most_inliers = np.count_nonzero(inliers)
+                        workedAtLeastOnce = True
+                    
+                        position_x_offset = 34.0 # this is the offset from the center of the robot to led0
+                        position_y_offset = 20.0 # this is the offset from the center of the robot to led0
 
-            best_transform[0,2] = best_transform[0,2] - position_x_offset
-            best_transform[1,2] = best_transform[1,2] - position_y_offset
+                        best_transform[0,2] = best_transform[0,2] - position_x_offset
+                        best_transform[1,2] = best_transform[1,2] - position_y_offset
+                except Exception as e:
+                    print("Error in _cv_getrobotaffinetransform")
+                    print("permToTry: " + str(permToTry))
+                    print("permToMatch: " + str(permToMatch))
+                    print("Exception: " + str(e))
+                    print("\n")
 
-            return best_transform, most_inliers, True
-        except:
-            debugPrint("Error in _cv_getRobotAffineTransform")
-            return None, None, False
+        return best_transform, most_inliers, workedAtLeastOnce
+                
+                
+
+
+        # try:
+        #     for p in permus:
+        #         transform, inliers = cv.estimateaffinepartial2d(np.array(p), robot_template_points) #todo: there are other params like condience and refine iters that can make this better
+        #         if np.count_nonzero(inliers) > most_inliers:
+        #             best_transform = transform
+        #             most_inliers = np.count_nonzero(inliers)
+
+        #     position_x_offset = 34.0 # this is the offset from the center of the robot to led0
+        #     position_y_offset = 20.0 # this is the offset from the center of the robot to led0
+
+        #     best_transform[0,2] = best_transform[0,2] - position_x_offset
+        #     best_transform[1,2] = best_transform[1,2] - position_y_offset
+
+        #     return best_transform, most_inliers, true
+        # except:
+        #     debugprint("error in _cv_getrobotaffinetransform")
+        #     return none, none, false
 
 
 
