@@ -91,6 +91,14 @@ int Planner::plan()
     for (int i = 0; i < this->num_robots; i++)
     {
         std::cout << "Planning for robot " << i << std::endl;
+
+        if (task_assignments[i] == -1)
+        {
+            // No task assigned to this robot
+            std::cout << "No task assigned to this robot" << std::endl;
+            continue;
+        }
+
         this->motion_planners[i]->set_start(this->robot_poses[i]);
         this->motion_planners[i]->set_goals(this->pallet_and_goal_poses[task_assignments[i]]);
         this->motion_planners[i]->set_robot_paths(this->paths);

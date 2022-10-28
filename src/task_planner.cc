@@ -30,7 +30,16 @@ std::vector<int> TaskPlanner::assign_pallets_to_robots(std::vector<std::vector<d
     // Loop through each robot and assign a task
     for (int i = 0; i < this->num_robots; i++)
     {
-        task_assignments.push_back(i);
+        if (i < pallet_and_goal_poses.size())
+        {
+            // Assign a task to the robot
+            task_assignments.push_back(i);
+        }
+        else
+        {
+            // No task to assign
+            task_assignments.push_back(-1);
+        }
     }
 
     return task_assignments;
