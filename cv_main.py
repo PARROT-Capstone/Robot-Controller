@@ -82,7 +82,7 @@ class CV:
             # generate the robot masks dynamically
             self._cv_GenerateRobotMasks()
     
-    def cv_visualize(self, robotPaths):
+    def cv_visualize(self, robotPaths, targetPose, robotRightSpeed, robotLeftSpeed, feedforward, feedback):
         # Goals:
         # 1. Place a vector at each robot's position
         # 2. Place a centroid at each pallet's position
@@ -106,6 +106,31 @@ class CV:
             start_point = (int(robot_pos_x), int(robot_pos_y))
             end_point = (int(robot_pos_x + 100*np.cos(robot_rotation_rad)), int(robot_pos_y - 100*np.sin(robot_rotation_rad)))
             cv.arrowedLine(self.visualizerField, start_point, end_point, (255, 0, 0), 2)
+        
+            # 5. Visualize the robot's indivigual speeds
+            # Left wheel position 5 cm to the left of the robot pose
+            # Right wheel position 5 cm to the right of the robot pose
+            mult = 10
+            leftMag = robotLeftSpeed * mult
+            rightMag = robotRightSpeed * mult
+            leftArrowStart = (int(robot_pos_x - 50*np.sin(robot_rotation_rad)), int(robot_pos_y - 50*np.cos(robot_rotation_rad)))
+            rightArrowStart = (int(robot_pos_x + 50*np.sin(robot_rotation_rad)), int(robot_pos_y + 50*np.cos(robot_rotation_rad)))
+            leftArrowEnd = (int(robot_pos_x - 50*np.sin(robot_rotation_rad) + leftMag * np.cos(robot_rotation_rad)), int(robot_pos_y - 50*np.cos(robot_rotation_rad) - leftMag*np.sin(robot_rotation_rad)))
+            rightArrowEnd = (int(robot_pos_x + 50*np.sin(robot_rotation_rad) + rightMag * np.cos(robot_rotation_rad)), int(robot_pos_y + 50*np.cos(robot_rotation_rad) - rightMag*np.sin(robot_rotation_rad)))
+
+            cv.arrowedLine(self.visualizerField, leftArrowStart, leftArrowEnd, (100, 0, 0), 2)
+            cv.arrowedLine(self.visualizerField, rightArrowStart, rightArrowEnd, (0, 0, 100), 2)
+
+            # 6. Visualize the robot direction vector
+            magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 10
+            angle = ((robotRightSpeed - robotLeftSpeed) / constants.maxRobotSpeed) * np.pi # scale to pi radians
+            angle += robot_rotation_rad
+            start_point = (int(robot_pos_x), int(robot_pos_y))
+            end_point = (int(robot_pos_x + magnitude * np.cos(angle)), int(robot_pos_y - magnitude * np.sin(angle)))
+            cv.arrowedLine(self.visualizerField, start_point, end_point, (255, 255, 255), 2)
+
+
+
 
         
         # 2. Place an arrow at each pallet's position 
@@ -121,9 +146,19 @@ class CV:
             for pose in robotPath:
                 (robot_pos_x, robot_pos_y, robot_rotation_rad, time, tag) = pose
                 start_point = (int(robot_pos_x), int(robot_pos_y))
-                end_point = (int(robot_pos_x + 20*np.cos(robot_rotation_rad)), int(robot_pos_y - 20*np.sin(robot_rotation_rad)))
+                end_point = (int(robot_pos_x + 5*np.cos(robot_rotation_rad)), int(robot_pos_y - 5*np.sin(robot_rotation_rad)))
                 cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 255, 0), 2)
-        
+
+        # 4. Visualize the target pose
+        (target_pos_x, target_pos_y, target_rotation_rad) = targetPose
+        start_point = (int(target_pos_x), int(target_pos_y))
+        end_point = (int(target_pos_x + 15*np.cos(target_rotation_rad)), int(target_pos_y - 15*np.sin(target_rotation_rad)))
+        cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 3)
+
+
+
+
+                    
         if(constants.CV_VISUALIZE_PATH):
             pass
 

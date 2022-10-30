@@ -1,3 +1,4 @@
+from copy import copy
 import numpy as np
 import time
 import math
@@ -5,10 +6,18 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 import mainHelper
 import constants
+import matplotlib.pyplot as plt
 
-Kpx = 0.3
-Kpy = 0.002
-Kpth = 0.1
+Kpx = 1
+Kdx = 1
+
+Kpy = 0.001
+Kdy = 0.8
+
+# Kpy = 0
+# Kdy = 0
+
+Kpth = 0.00
 Ki = 0
 Kd = 0
 
@@ -38,11 +47,19 @@ class Controller:
         self.robotErrorSum = (0, 0, 0)
         self.robotCommand = (0, 0)
         self.last_position_time = self.startTime
+        if constants.CONTROLS_DEBUG:
+            self.xErrorList = []
+            self.yErrorList = []
+            self.timeList = []
+            self.fig = plt.figure()
 
     def controller_getRobotVelocities(self, robotPose_global):
         # Get robot time
         currentTime = time.time()
         relativeTime = currentTime - self.startTime
+        robotPose_global[yIndex] *= -1
+        
+        # print("Robot Pose: ", robotPose_global)
 
         # Get past and next point
         pastPoint, nextPoint = self.controller_getPastNextPoints(relativeTime)
@@ -52,9 +69,35 @@ class Controller:
 
         # Find next point in sequence in global coordinates
         targetPose_global, dxdt, dydt = self.controller_getNextTargetPoint(relativeTime, pastPoint, nextPoint, xFunc, yFunc)
+        # print("Target Pose: ", targetPose_global)
 
         # Find error in robot coordinates
         self.robotError = self.controller_getErrorRobotCoords(targetPose_global, robotPose_global)
+        print("Robot Error: ", self.robotError)
+        # Matplotlib live plot of error
+        if constants.CONTROLS_DEBUG:
+            self.xErrorList.append(self.robotError[xIndex])
+            self.yErrorList.append(self.robotError[yIndex])
+            self.timeList.append(relativeTime)
+
+            bufferLen = 10
+
+            while len(self.xErrorList) > bufferLen:
+                self.xErrorList.pop(0)
+            while len(self.yErrorList) > bufferLen:
+                self.yErrorList.pop(0)
+            while len(self.timeList) > bufferLen:
+                self.timeList.pop(0)
+
+            self.fig.clear()
+            plt.plot(self.timeList, self.xErrorList, 'r', linestyle='-', label='xError')
+            # plt.plot(self.timeList, self.yErrorList, 'b', linestyle='-', label='yError')
+            plt.show(block=False)
+            plt.pause(0.0001)
+
+
+        targetPose_global = (targetPose_global[xIndex], -1*targetPose_global[yIndex], targetPose_global[thetaIndex])
+
 
         # Find error sum and error difference
         self.robotErrorSum = tuple(np.add(self.robotError, self.robotErrorSum))
@@ -72,7 +115,10 @@ class Controller:
 
         # Return wheel speeds based on FFW + FBK terms
         self.robotCommand = tuple(np.add(feedforward, feedback))
-        return (self.controller_getWheelVelocities(), targetPose_global, feedforward, feedback)
+        print("V, W: ", self.robotCommand)
+        velLeft, velRight = self.controller_getWheelVelocities()
+        print("Left, Right: ", velLeft, velRight)
+        return ((velLeft, velRight), targetPose_global, feedforward, feedback)
     
     def controller_getPastNextPoints(self, relativeTime):
         # point is (x, y, theta, relative_time, tag)
@@ -92,7 +138,11 @@ class Controller:
             nextPoint = pastPoint
         if (pastPoint is None or nextPoint is None):
             raise Exception("Error finding next point on trajectory")
-        return (pastPoint, nextPoint)
+        pastPointCopy = copy(pastPoint)
+        pastPointCopy[yIndex] *= -1
+        nextPointCopy = copy(nextPoint)
+        nextPointCopy[yIndex] *= -1
+        return (pastPointCopy, nextPointCopy)
 
     def controller_getInterpolation(self, pastPoint, nextPoint):
         if pastPoint[timeIndex] == nextPoint[timeIndex]:
@@ -173,8 +223,9 @@ class Controller:
 
     # Returns (linear velocity, angular velocity)
     def controller_getFeedbackTerm(self):
-        errorV = self.robotError[xIndex] * Kpx
-        errorOmega = self.robotError[yIndex] * Kpy + self.robotError[thetaIndex] * Kpth
+        errorV = self.robotError[xIndex] * Kpx + self.errorDiff_robot[xIndex] * Kdx
+        errorOmega = self.robotError[yIndex] * Kpy + self.errorDiff_robot[yIndex] * Kdy + self.robotError[thetaIndex] * Kpth
+        # print("ErrorV: " + str(errorV) + " ErrorOmega: " + str(errorOmega))
         return (errorV, errorOmega)
 
     def controller_getWheelVelocities(self):

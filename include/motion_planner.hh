@@ -135,6 +135,8 @@ private:
         {5, {{-1, 1, 5 * M_PI / 4}, {0, 1, 3 * M_PI / 2}}},
         {6, {{0, 1, 3 * M_PI / 2}, {1, 1, 7 * M_PI / 4}}},
         {7, {{1, 1, 7 * M_PI / 4}, {1, 0, 0.0}}}};
+
+    double time_step = 1.0; // seconds
 };
 
 #endif // MOTION_PLANNER_HH

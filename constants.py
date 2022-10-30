@@ -75,3 +75,5 @@ half_wheel_base = 50 # mm # wheelbase is actually 100mm
 wheel_radius = 30 # mm
 controlsLinearSpeed = 1 #mm/s
 controlsDeltaTime = 0.001 #s
+maxRobotSpeed = 100 #mm/s
+CONTROLS_DEBUG = False

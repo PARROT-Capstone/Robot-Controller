@@ -19,9 +19,9 @@ def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
     velRightAng = velRightLinear / constants.wheel_radius
 
     # convert angular velocity to pwm
-    scaleFactor = 5
-    leftPWM = velLeftAng * scaleFactor + 90
-    rightPWM = 90 - velRightAng * scaleFactor
+    scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
+    leftPWM = 90 + (velLeftAng * scaleFactor)
+    rightPWM = 90 - (velRightAng * scaleFactor)
 
     # clamp pwm between 0 and 180
     leftPWM = min(max(leftPWM, 0), 180)
@@ -34,5 +34,4 @@ def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
                 "servo2": int(rightPWM)
             }
 
-    print(json)
     x = requests.post(robot_url, data=json)  

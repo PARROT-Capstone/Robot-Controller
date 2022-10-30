@@ -29,7 +29,15 @@ for pose in robotPoses:
 palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
 map_size = (CV_SANDBOX_WIDTH, CV_SANDBOX_HEIGHT)
 
-paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[800,800,0]])
+# set the goal poses to be palletPoses - 100mm in the x direction
+goalPoses = []
+for pose in palletPoses:
+    goalPoses.append([pose[0] - 300, pose[1], pose[2]])
+
+paths = [[970.0, 470.0, 3.044339455338228, 0.0, 0.0], [960.0, 460.0, 2.356194490192345, 1.0, 0.0], [950.0, 450.0, 2.356194490192345, 2.0, 0.0]]
+
+paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[100, 100, 0]])
+paths = [paths[0][0:3]]
 
 # print the paths for each robot
 for i in range(len(paths)):
@@ -42,15 +50,17 @@ controllers = [Controller(i, paths[i]) for i in range(mainHelper.Main_getRobotCo
 
 # control loop
 while True:
-    # start = time.time()
+    start = time.time()
     computerVision.cv_runLocalizer()
     robotPoses = computerVision.cv_GetRobotPositions()
+    print("CV Framerate: ", 1/(time.time() - start))
     # print(robotPoses)
-    # end = time.time()
     palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
-    # for i in range(mainHelper.Main_getRobotCounts()):#TODO: change later
-    #     linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
-    #     velLeftLinear, velRightLinear = linearWheelVelocities
-    #     mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear)
-    computerVision.cv_visualize(paths)
-    # print("Time: ", end - start)
+    for i in range(mainHelper.Main_getRobotCounts()):#TODO: change later
+        linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+        velLeftLinear, velRightLinear = linearWheelVelocities
+        mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear)
+    print("Controller Framerate: ", 1/(time.time() - start))
+    computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)
+    end = time.time()
+    print("Frame Rate: ", 1 / (end - start))

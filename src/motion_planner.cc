@@ -100,7 +100,7 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
         int h = std::max(abs(curr_node->x - goal[0]), abs(curr_node->y - goal[1]));
 
         // Create a new node
-        Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + 1, g, h, curr_node);
+        Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + this->time_step, g, h, curr_node);
 
         // Add the neighbor to the list of neighbors
         neighbors.push_back(neighbor);
@@ -335,12 +335,12 @@ int MotionPlanner::plan()
 
     std::cout << "Pallet goal path found" << std::endl;
 
-    // use A* to find the path for the dropoff goal
-    if (this->a_star(false) == -1)
-    {
-        std::cout << "No path found for dropoff goal" << std::endl;
-        return -1;
-    }
+    // // use A* to find the path for the dropoff goal
+    // if (this->a_star(false) == -1)
+    // {
+    //     std::cout << "No path found for dropoff goal" << std::endl;
+    //     return -1;
+    // }
 
     return 0;
 }
