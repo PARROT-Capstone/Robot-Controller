@@ -125,18 +125,21 @@ private:
      */
     bool is_in_collision(Node *node, bool is_pallet_goal);
 
-    // map between discretized angle (between 0 and 7) and list of dx, dy, theta. 0 points to the right.
-    std::map<int, std::vector<std::vector<double>>> angle_to_dxdythetas = {
-        {0, {{1, 0, 0.0}, {1, -1, M_PI / 4}}},
-        {1, {{1, -1, M_PI / 4}, {0, -1, M_PI / 2}}},
-        {2, {{0, -1, M_PI / 2}, {-1, -1, 3 * M_PI / 4}}},
-        {3, {{-1, -1, 3 * M_PI / 4}, {-1, 0, M_PI}}},
-        {4, {{-1, 0, M_PI}, {-1, 1, 5 * M_PI / 4}}},
-        {5, {{-1, 1, 5 * M_PI / 4}, {0, 1, 3 * M_PI / 2}}},
-        {6, {{0, 1, 3 * M_PI / 2}, {1, 1, 7 * M_PI / 4}}},
-        {7, {{1, 1, 7 * M_PI / 4}, {1, 0, 0.0}}}};
+    double straight_time_step = 0.166; // seconds
+    double turn_time_step = 1.66; // seconds
 
-    double time_step = 1.0; // seconds
+    // map between discretized angle (between 0 and 7) and list of dx, dy, theta. 0 points to the right.
+    std::map<int, std::vector<std::vector<double>>> angle_to_dxdythetadtimes = {
+        {0, {{1, 0, 0.0, this->straight_time_step}, {10, -10, M_PI / 4, this->turn_time_step}}},
+        {1, {{10, -10, M_PI / 4, this->turn_time_step}, {0, -1, M_PI / 2, this->straight_time_step}}},
+        {10, {{0, -1, M_PI / 2, this->straight_time_step}, {-10, -10, 3 * M_PI / 4, this->turn_time_step}}},
+        {3, {{-10, -10, 3 * M_PI / 4, this->turn_time_step}, {-1, 0, M_PI, this->straight_time_step}}},
+        {4, {{-1, 0, M_PI, this->straight_time_step}, {-10, 10, 5 * M_PI / 4, this->turn_time_step}}},
+        {5, {{-10, 10, 5 * M_PI / 4, this->turn_time_step}, {0, 1, 3 * M_PI / 2, this->straight_time_step}}},
+        {6, {{0, 1, 3 * M_PI / 2, this->straight_time_step}, {10, 10, 7 * M_PI / 4, this->turn_time_step}}},
+        {7, {{10, 10, 7 * M_PI / 4, this->turn_time_step}, {1, 0, 0.0, this->straight_time_step}}}};
+
+
 };
 
 #endif // MOTION_PLANNER_HH

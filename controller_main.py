@@ -11,13 +11,16 @@ import matplotlib.pyplot as plt
 Kpx = 1
 Kdx = 1
 
-Kpy = 0.001
-Kdy = 0.8
+# Kpx = 0
+# Kdx = 0
+
+Kpy = 0.02
+Kdy = 0
 
 # Kpy = 0
 # Kdy = 0
 
-Kpth = 0.00
+Kpth = 1
 Ki = 0
 Kd = 0
 

@@ -1,6 +1,8 @@
 import math
 import constants
 import requests
+import aiohttp
+import asyncio
 
 def Main_getRobotCounts():
     return 1
@@ -14,24 +16,40 @@ def Main_getRobotPaths(robotId):
     (0, 4, -math.pi/2, 8, 0), (0, -6, -math.pi/2, 11, 0), (10, 0, math.pi/2, 20, 0),
     (10, 0, math.pi/2, 25, 0), (-2, -4, -math.pi/4, 35, 0)]
 
-def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
-    velLeftAng = velLeftLinear / constants.wheel_radius
-    velRightAng = velRightLinear / constants.wheel_radius
+async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
+    async with aiohttp.ClientSession() as session:
+        velLeftAng = velLeftLinear / constants.wheel_radius
+        velRightAng = velRightLinear / constants.wheel_radius
 
-    # convert angular velocity to pwm
-    scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
-    leftPWM = 90 + (velLeftAng * scaleFactor)
-    rightPWM = 90 - (velRightAng * scaleFactor)
+        offset = 2
 
-    # clamp pwm between 0 and 180
-    leftPWM = min(max(leftPWM, 0), 180)
-    rightPWM = min(max(rightPWM, 0), 180)
+        # convert angular velocity to pwm
+        scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
 
-    # TODO: change robot url
-    robot_url = "http://parrot-robot1.wifi.local.cmu.edu"
-    json = {"dtype": "speed", 
-                "servo1": int(leftPWM),
-                "servo2": int(rightPWM)
-            }
 
-    x = requests.post(robot_url, data=json)  
+        leftPWM = 90 + (velLeftAng * scaleFactor)
+        if velLeftAng > 0:
+            leftPWM += offset
+        elif velLeftAng < 0:
+            leftPWM -= offset
+
+        
+        rightPWM = 90 - (velRightAng * scaleFactor)
+        if velRightAng > 0:
+            rightPWM -= offset
+        elif velRightAng < 0:
+            rightPWM += offset
+
+        # clamp pwm between 0 and 180
+        leftPWM = min(max(leftPWM, 0), 180)
+        rightPWM = min(max(rightPWM, 0), 180)
+
+        # TODO: change robot url
+        robot_url = "http://parrot-robot1.wifi.local.cmu.edu"
+        robot_url = "http://192.168.2.10"
+        json = {"dtype": "speed", 
+                    "servo1": int(leftPWM),
+                    "servo2": int(rightPWM)
+                }
+        async with session.post(robot_url, data=json) as resp:
+            pass

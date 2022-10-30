@@ -82,25 +82,27 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
     int dir = (int)floor(theta / (M_PI / 4));
 
     // Get the list of dx, dy, and theta for the neighbors
-    std::vector<std::vector<double>> neighbor_dxdythetas = this->angle_to_dxdythetas[dir];
+    std::vector<std::vector<double>> neighbor_dxdythetadtimes = this->angle_to_dxdythetadtimes[dir];
 
     // set the goal based on the pallet_goal or dropoff_goal
     std::vector<double> goal = is_pallet_goal ? this->pallet_goal : this->dropoff_goal;
 
     // For each neighbor, create a new node and add it to the list of neighbors
-    for (auto &neighbor_dxdytheta : neighbor_dxdythetas)
+    for (auto &neighbor_dxdythetadtime : neighbor_dxdythetadtimes)
     {
-        double dx = neighbor_dxdytheta[0];
-        double dy = neighbor_dxdytheta[1];
-        double theta = neighbor_dxdytheta[2];
+        double dx = neighbor_dxdythetadtime[0];
+        double dy = neighbor_dxdythetadtime[1];
+        double theta = neighbor_dxdythetadtime[2];
+        double time = neighbor_dxdythetadtime[3];
+
 
         // calculate the g and h values for the neighbor
-        int g = curr_node->g_value + 1;
+        int g = curr_node->g_value + (int)time;
         // calculate h value using diagonal distance
         int h = std::max(abs(curr_node->x - goal[0]), abs(curr_node->y - goal[1]));
 
         // Create a new node
-        Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + this->time_step, g, h, curr_node);
+        Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + time, g, h, curr_node);
 
         // Add the neighbor to the list of neighbors
         neighbors.push_back(neighbor);

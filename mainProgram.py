@@ -6,6 +6,9 @@ from controller_main import Controller
 import time as time
 from build import planner
 import math
+import aiohttp
+import asyncio
+import pickle
 
 computerVision = CV()
 
@@ -37,7 +40,19 @@ for pose in palletPoses:
 paths = [[970.0, 470.0, 3.044339455338228, 0.0, 0.0], [960.0, 460.0, 2.356194490192345, 1.0, 0.0], [950.0, 450.0, 2.356194490192345, 2.0, 0.0]]
 
 paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[100, 100, 0]])
-paths = [paths[0][0:3]]
+# paths = [paths[0][0:3]]
+
+# open a file, where you ant to store the data
+file = open('Pickle2', 'wb')
+
+data = [paths, robotPoses, palletPoses]
+
+# dump information to that file
+pickle.dump(data, file)
+
+# close the file
+file.close()
+
 
 # print the paths for each robot
 for i in range(len(paths)):
@@ -59,8 +74,9 @@ while True:
     for i in range(mainHelper.Main_getRobotCounts()):#TODO: change later
         linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
         velLeftLinear, velRightLinear = linearWheelVelocities
-        mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear)
-    print("Controller Framerate: ", 1/(time.time() - start))
+        print("Controller Framerate: ", 1/(time.time() - start))
+        asyncio.run(mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear))
+    print("PostReq Framerate: ", 1/(time.time() - start))
     computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)
     end = time.time()
     print("Frame Rate: ", 1 / (end - start))
