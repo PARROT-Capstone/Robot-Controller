@@ -42,9 +42,7 @@ goalPoses = []
 for pose in palletPoses:
     goalPoses.append([pose[0] - 300, pose[1], pose[2]])
 
-paths = [[970.0, 470.0, 3.044339455338228, 0.0, 0.0], [960.0, 460.0, 2.356194490192345, 1.0, 0.0], [950.0, 450.0, 2.356194490192345, 2.0, 0.0]]
-
-paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[100, 100, 0]])
+paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[200, 200, math.pi]])
 # paths = [paths[0][0:3]]
 
 # open a file, where you ant to store the data
@@ -78,11 +76,10 @@ while True:
     palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
     robotCommands = []
     for i in range(mainHelper.Main_getRobotCounts()):#TODO: change later
-        robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
-        robotCommands.append(robotCommand)
-        velLeftLinear, velRightLinear, electromagnet_command = robotCommand
+        linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+        velLeftLinear, velRightLinear, electromagnet_command = linearWheelVelocities
         print("Controller Framerate: ", 1/(time.time() - start))
-    asyncio.run(mainHelper.Main_SendRobotControls(robotCommands))
+        asyncio.run(mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear, electromagnet_command))
     print("PostReq Framerate: ", 1/(time.time() - start))
     computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)
     end = time.time()
