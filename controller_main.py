@@ -8,22 +8,17 @@ import mainHelper
 import constants
 import matplotlib.pyplot as plt
 
-Kpx = 1
-Kdx = 1
+Kpx = constants.CONTROLS_ROBOT_PID_KPx
+Kdx = constants.CONTROLS_ROBOT_PID_KDx
 
-# Kpx = 0
-# Kdx = 0
+Kpy = constants.CONTROLS_ROBOT_PID_KPy
+Kdy = constants.CONTROLS_ROBOT_PID_KDy
 
-Kpy = 0.02
-Kdy = 0
+Kpth = constants.CONTROLS_ROBOT_PID_KPtheta
+Ki = constants.CONTROLS_ROBOT_PID_KItheta
+Kd = constants.CONTROLS_ROBOT_PID_KDtheta
 
-# Kpy = 0
-# Kdy = 0
-
-Kpth = 1
-Ki = 0
-Kd = 0
-
+# emulate enums
 xIndex = 0
 yIndex = 1
 thetaIndex = 2
