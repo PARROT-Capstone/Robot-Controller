@@ -4,11 +4,16 @@ import mainHelper
 from cv_main import CV
 from controller_main import Controller
 import time as time
-from build import planner
 import math
 import aiohttp
 import asyncio
 import pickle
+import os
+
+# cd build and make the c++ code
+os.system("cd build && make")
+
+from build import planner
 
 computerVision = CV()
 
