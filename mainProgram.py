@@ -76,11 +76,13 @@ while True:
     print("CV Framerate: ", 1/(time.time() - start))
     # print(robotPoses)
     palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
+    robotCommands = []
     for i in range(mainHelper.Main_getRobotCounts()):#TODO: change later
-        linearWheelVelocities, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
-        velLeftLinear, velRightLinear = linearWheelVelocities
+        robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+        robotCommands.append(robotCommand)
+        velLeftLinear, velRightLinear, electromagnet_command = robotCommand
         print("Controller Framerate: ", 1/(time.time() - start))
-        asyncio.run(mainHelper.Main_SendRobotControls(i, velLeftLinear, velRightLinear))
+    asyncio.run(mainHelper.Main_SendRobotControls(robotCommands))
     print("PostReq Framerate: ", 1/(time.time() - start))
     computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)
     end = time.time()
