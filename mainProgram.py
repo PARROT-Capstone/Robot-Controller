@@ -7,11 +7,16 @@ from cv_main import CV
 from controller_main import Controller
 import threading
 import time as time
-from build import planner
 import math
 import aiohttp
 import asyncio
 import pickle
+import os
+
+# cd build and make the c++ code
+os.system("cd build && make")
+
+from build import planner
 
 computerVision = CV()
 
@@ -40,7 +45,17 @@ goalPoses = []
 for pose in palletPoses:
     goalPoses.append([pose[0] - 300, pose[1], pose[2]])
 
+<<<<<<< HEAD
 paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[100, 100, 0]])
+=======
+paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[200, 200, math.pi]])
+# paths = [paths[0][0:3]]
+
+# open a file, where you ant to store the data
+file = open('Pickle2', 'wb')
+
+data = [paths, robotPoses, palletPoses]
+>>>>>>> 9a5d9ea03d87ddbed72e1ad0ce47033bd2a7d454
 
 
 

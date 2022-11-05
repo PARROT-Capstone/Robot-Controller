@@ -128,6 +128,12 @@ class CV_Fiducial:
                 centerY = int((topLeft[1] + bottomRight[1]) / 2.0)
 
                 orientation = None
+                # Use the fiducial corners to determine the orientation of the robot
+                orientation = math.atan2(topLeft[1] - bottomLeft[1], topLeft[0] - bottomLeft[0])
+                orientation += math.pi/2
+                orientation = math.atan2(math.sin(orientation), math.cos(orientation))
+                orientation = orientation * -1 # negate the angle to make it match the robot's coordinate system
+
                 # reserve the extra processing for the robot fiducials
                 if fiducial_id in constants.ROBOT_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:
                     # estimate the pose of the marker
@@ -143,11 +149,6 @@ class CV_Fiducial:
 
                     rotMat = cv.Rodrigues(rvec)[0]
                     rot = math.atan2(rotMat[1,0], rotMat[0,0])
-                    # Use the fiducial corners to determine the orientation of the robot
-                    orientation = math.atan2(topLeft[1] - bottomLeft[1], topLeft[0] - bottomLeft[0])
-                    orientation += math.pi/2
-                    orientation = math.atan2(math.sin(orientation), math.cos(orientation))
-                    orientation = orientation * -1 # negate the angle to make it match the robot's coordinate system
                     
                     if constants.CV_DEBUG:
                         # cv.aruco.drawDetectedMarkers(image_frame_annotated, corner_list)
@@ -230,7 +231,7 @@ class CV_Fiducial:
         # Find and pack the found pallets from the possible pallet fiducials
         for fiducialID in palletFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
-                pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [0]
+                pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [self.cv_fiducial_markerDict[fiducialID][6]]
                 foundPalletFiducialIDs.append(pose)
         
         return foundPalletFiducialIDs

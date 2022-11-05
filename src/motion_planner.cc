@@ -27,6 +27,15 @@ MotionPlanner::~MotionPlanner()
 void MotionPlanner::set_start(std::vector<double> start)
 {
     this->start = start;
+    // clamp the theta to be between 0 and 2pi
+    if (this->start[2] < 0)
+    {
+        this->start[2] += 2 * M_PI;
+    }
+    else if (this->start[2] > 2 * M_PI)
+    {
+        this->start[2] -= 2 * M_PI;
+    }
 }
 
 void MotionPlanner::set_goals(std::vector<double> goals)
@@ -34,6 +43,25 @@ void MotionPlanner::set_goals(std::vector<double> goals)
     // parse the goals vector into pallet and dropoff goals
     this->pallet_goal = {goals[0], goals[1], goals[2]};
     this->dropoff_goal = {goals[3], goals[4], goals[5]};
+
+    // clamp the theta to be between 0 and 2pi
+    if (this->pallet_goal[2] < 0)
+    {
+        this->pallet_goal[2] += 2 * M_PI;
+    }
+    else if (this->pallet_goal[2] > 2 * M_PI)
+    {
+        this->pallet_goal[2] -= 2 * M_PI;
+    }
+
+    if (this->dropoff_goal[2] < 0)
+    {
+        this->dropoff_goal[2] += 2 * M_PI;
+    }
+    else if (this->dropoff_goal[2] > 2 * M_PI)
+    {
+        this->dropoff_goal[2] -= 2 * M_PI;
+    }
 }
 
 void MotionPlanner::set_robot_paths(std::vector<std::vector<std::vector<double>>> robot_paths)
@@ -95,11 +123,16 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
         double theta = neighbor_dxdythetadtime[2];
         double time = neighbor_dxdythetadtime[3];
 
-
         // calculate the g and h values for the neighbor
         int g = curr_node->g_value + (int)time;
-        // calculate h value using diagonal distance
-        int h = std::max(abs(curr_node->x - goal[0]), abs(curr_node->y - goal[1]));
+        // calculate h value using euclidean distance
+        int h = (int)sqrt(pow(goal[0] - (curr_node->x + dx), 2) + pow(goal[1] - (curr_node->y + dy), 2));
+
+        // Do not allow turns if the robot is within threshold of the goal
+        if (h < 5 && time == this->turn_time_step)
+        {
+            continue;
+        }
 
         // Create a new node
         Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + time, g, h, curr_node);
@@ -209,10 +242,11 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
 
 int MotionPlanner::a_star(bool is_pallet_goal)
 {
+
     // set the goal based on the pallet_goal or dropoff_goal
     std::vector<double> goal = is_pallet_goal ? this->pallet_goal : this->dropoff_goal;
     // set the start based on the pallet_goal or dropoff_goal
-    std::vector<double> start = is_pallet_goal ? this->start : this->pallet_goal;
+    std::vector<double> start = is_pallet_goal ? this->start : this->path.back();
     // set the relative start time based on the pallet_goal or dropoff_goal
     double start_time = is_pallet_goal ? 0 : (this->path.back()[3] + 5);
 
@@ -224,6 +258,10 @@ int MotionPlanner::a_star(bool is_pallet_goal)
     Node *start_node = new Node((int)start[0], (int)start[1], start[2], start_time, 0, start_h_value, nullptr);
     int goal_h_value = 0;
     Node *goal_node = new Node((int)goal[0], (int)goal[1], goal[2], 0.0, 0, goal_h_value, nullptr);
+
+    // Print the start and goal nodes for debugging
+    std::cout << "Start Node: " << start_node->x << ", " << start_node->y << ", " << start_node->theta << ", " << start_node->time << ", " << start_node->g_value << ", " << start_node->h_value << std::endl;
+    std::cout << "Goal Node: " << goal_node->x << ", " << goal_node->y << ", " << goal_node->theta << ", " << goal_node->time << ", " << goal_node->g_value << ", " << goal_node->h_value << std::endl;
 
     // if goal is in collision, return
     if (this->is_in_collision(goal_node, is_pallet_goal) && !is_pallet_goal)
@@ -261,13 +299,19 @@ int MotionPlanner::a_star(bool is_pallet_goal)
         // check if the current node x, y, and theta are the same as the goal x, y, and theta
         if (current_node->x == goal_node->x && current_node->y == goal_node->y)
         {
-            // if yes, then we have found the path
-            goal_node = current_node;
-            break;
+            // check if the goal angle is within pi/4 radians of the current node angle
+            if (abs(current_node->theta - goal_node->theta) <= M_PI / 4)
+            {
+               goal_node = current_node;
+               break;
+            }   
         }
 
         // Get the neighbors of the current node
         std::vector<Node *> neighbors = get_neighbors(current_node, is_pallet_goal);
+
+        // Print the number of neighbors
+        // std::cout << "Number of neighbors: " << neighbors.size() << std::endl;
 
         // for each neighbor
         for (Node *neighbor : neighbors)
@@ -337,12 +381,14 @@ int MotionPlanner::plan()
 
     std::cout << "Pallet goal path found" << std::endl;
 
-    // // use A* to find the path for the dropoff goal
-    // if (this->a_star(false) == -1)
-    // {
-    //     std::cout << "No path found for dropoff goal" << std::endl;
-    //     return -1;
-    // }
+    // use A* to find the path for the dropoff goal
+    if (this->a_star(false) == -1)
+    {
+        std::cout << "No path found for dropoff goal" << std::endl;
+        return -1;
+    }
+
+    std::cout << "Dropoff goal path found" << std::endl;
 
     return 0;
 }
