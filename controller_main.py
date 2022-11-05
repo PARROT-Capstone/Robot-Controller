@@ -23,6 +23,7 @@ xIndex = 0
 yIndex = 1
 thetaIndex = 2
 timeIndex = 3
+tagIndex = 4
 
 dt = 1e-6
 
@@ -45,6 +46,7 @@ class Controller:
         self.robotErrorSum = (0, 0, 0)
         self.robotCommand = (0, 0)
         self.last_position_time = self.startTime
+        self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
         if constants.CONTROLS_DEBUG:
             self.xErrorList = []
             self.yErrorList = []
@@ -116,7 +118,24 @@ class Controller:
         print("V, W: ", self.robotCommand)
         velLeft, velRight = self.controller_getWheelVelocities()
         print("Left, Right: ", velLeft, velRight)
-        return ((velLeft, velRight), targetPose_global, feedforward, feedback)
+
+        # Determine when to send electromagnet command
+        electromagnet_command = constants.ELECTROMAGNET_DONT_SEND
+        if ((nextPoint[timeIndex] <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and (nextPoint[tagIndex] != 0)):
+            electromagnet_command = nextPoint[tagIndex]
+            self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL if electromagnet_command == constants.ELECTROMAGNET_ENABLE else constants.CONTROLS_STATE_DRIVING_TO_PALLET
+        elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_ENABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET)):
+            electromagnet_command = constants.ELECTROMAGNET_ENABLE
+            self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
+        elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_DISABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL)):
+            electromagnet_command = constants.ELECTROMAGNET_DISABLE
+            self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
+
+
+        if (constants.CONTROLS_DEBUG and electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
+            print("Electromagnet command: ", electromagnet_command)
+
+        return ((velLeft, velRight, electromagnet_command), targetPose_global, feedforward, feedback)
     
     def controller_getPastNextPoints(self, relativeTime):
         # point is (x, y, theta, relative_time, tag)

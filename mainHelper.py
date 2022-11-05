@@ -41,7 +41,7 @@ def _Main_robotVelSafetyFilter(velLeftPWM, velRightPWM):
 
     return leftPWM, rightPWM
 
-async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
+async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear, electromagnet_command):
     async with aiohttp.ClientSession() as session:
         velLeftAng = velLeftLinear / constants.wheel_radius
         velRightAng = velRightLinear / constants.wheel_radius
@@ -70,9 +70,16 @@ async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
         # TODO: change robot url
         robot_url = "http://parrot-robot1.wifi.local.cmu.edu"
         robot_url = "http://192.168.2.10"
-        json = {"dtype": "speed", 
+        
+        if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
+            emJson = {"dtype": "pallet",
+                    "power": (1 if electromagnet_command == constants.ELECTROMAGNET_ENABLE else 0)}
+            async with session.post(robot_url, data=emJson) as resp:
+                pass
+
+        servoJson = {"dtype": "speed", 
                     "servo1": int(leftPWM),
                     "servo2": int(rightPWM)
                 }
-        async with session.post(robot_url, data=json) as resp:
+        async with session.post(robot_url, data=servoJson) as resp:
             pass
