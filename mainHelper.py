@@ -16,7 +16,7 @@ def Main_getRobotPaths(robotId):
     (0, 4, -math.pi/2, 8, 0), (0, -6, -math.pi/2, 11, 0), (10, 0, math.pi/2, 20, 0),
     (10, 0, math.pi/2, 25, 0), (-2, -4, -math.pi/4, 35, 0)]
 
-async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
+async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear, electromagnet_command):
     async with aiohttp.ClientSession() as session:
         velLeftAng = velLeftLinear / constants.wheel_radius
         velRightAng = velRightLinear / constants.wheel_radius
@@ -44,12 +44,21 @@ async def Main_SendRobotControls(robotId, velLeftLinear, velRightLinear):
         leftPWM = min(max(leftPWM, 0), 180)
         rightPWM = min(max(rightPWM, 0), 180)
 
+        print("Left PWM: ", leftPWM, "Right PWM: ", rightPWM)
+
         # TODO: change robot url
         robot_url = "http://parrot-robot1.wifi.local.cmu.edu"
-        robot_url = "http://192.168.2.10"
-        json = {"dtype": "speed", 
+        # robot_url = "http://192.168.2.10"
+        
+        if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
+            emJson = {"dtype": "pallet",
+                    "power": (1 if electromagnet_command == constants.ELECTROMAGNET_ENABLE else 0)}
+            async with session.post(robot_url, data=emJson) as resp:
+                pass
+
+        servoJson = {"dtype": "speed", 
                     "servo1": int(leftPWM),
                     "servo2": int(rightPWM)
                 }
-        async with session.post(robot_url, data=json) as resp:
+        async with session.post(robot_url, data=servoJson) as resp:
             pass

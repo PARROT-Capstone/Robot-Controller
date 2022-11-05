@@ -125,8 +125,8 @@ private:
      */
     bool is_in_collision(Node *node, bool is_pallet_goal);
 
-    double straight_time_step = 0.166; // seconds
-    double turn_time_step = 1.66;      // seconds
+    double straight_time_step = 0.3; // seconds
+    double turn_time_step = 3.0;      // seconds
 
     // map between discretized angle (between 0 and 7) and list of dx, dy, theta. 0 points to the right.
     // TODO make sure these neighbors are correct

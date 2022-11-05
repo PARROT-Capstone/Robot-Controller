@@ -27,6 +27,15 @@ MotionPlanner::~MotionPlanner()
 void MotionPlanner::set_start(std::vector<double> start)
 {
     this->start = start;
+    // clamp the theta to be between 0 and 2pi
+    if (this->start[2] < 0)
+    {
+        this->start[2] += 2 * M_PI;
+    }
+    else if (this->start[2] > 2 * M_PI)
+    {
+        this->start[2] -= 2 * M_PI;
+    }
 }
 
 void MotionPlanner::set_goals(std::vector<double> goals)
@@ -34,6 +43,25 @@ void MotionPlanner::set_goals(std::vector<double> goals)
     // parse the goals vector into pallet and dropoff goals
     this->pallet_goal = {goals[0], goals[1], goals[2]};
     this->dropoff_goal = {goals[3], goals[4], goals[5]};
+
+    // clamp the theta to be between 0 and 2pi
+    if (this->pallet_goal[2] < 0)
+    {
+        this->pallet_goal[2] += 2 * M_PI;
+    }
+    else if (this->pallet_goal[2] > 2 * M_PI)
+    {
+        this->pallet_goal[2] -= 2 * M_PI;
+    }
+
+    if (this->dropoff_goal[2] < 0)
+    {
+        this->dropoff_goal[2] += 2 * M_PI;
+    }
+    else if (this->dropoff_goal[2] > 2 * M_PI)
+    {
+        this->dropoff_goal[2] -= 2 * M_PI;
+    }
 }
 
 void MotionPlanner::set_robot_paths(std::vector<std::vector<std::vector<double>>> robot_paths)
@@ -271,9 +299,12 @@ int MotionPlanner::a_star(bool is_pallet_goal)
         // check if the current node x, y, and theta are the same as the goal x, y, and theta
         if (current_node->x == goal_node->x && current_node->y == goal_node->y)
         {
-            // if yes, then we have found the path
-            goal_node = current_node;
-            break;
+            // check if the goal angle is within pi/4 radians of the current node angle
+            if (abs(current_node->theta - goal_node->theta) <= M_PI / 4)
+            {
+               goal_node = current_node;
+               break;
+            }   
         }
 
         // Get the neighbors of the current node
