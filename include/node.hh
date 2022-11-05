@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string>
 #include <algorithm>
+#include <constants.hh>
 
 class Node
 {
@@ -29,7 +30,7 @@ struct OpenListNodeComparator
     bool operator()(const Node *n1, const Node *n2) const
     {
         // NOTE Weight is 100t, but can be changed if we decided to do weighted A*
-        return n1->g_value + n1->h_value > n2->g_value + n2->h_value;
+        return G_VALUE_WEIGHT * n1->g_value + H_VALUE_WEIGHT * n1->h_value > G_VALUE_WEIGHT * n2->g_value + H_VALUE_WEIGHT * n2->h_value;
     }
 };
 

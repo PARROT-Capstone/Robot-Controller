@@ -125,11 +125,16 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
 
         // calculate the g and h values for the neighbor
         int g = curr_node->g_value + (int)time;
+        // Penalize the g value if the robot has to turn
+        if (theta != curr_node->theta)
+        {
+            g += TURN_TIME_STEP;
+        }
         // calculate h value using euclidean distance
-        int h = (int)sqrt(pow(goal[0] - (curr_node->x + dx), 2) + pow(goal[1] - (curr_node->y + dy), 2));
+        int h = (int)sqrt(pow(goal[0] - (curr_node->x + dx), 2) + pow(goal[1] - (curr_node->y + dy), 2) + pow(goal[2] - (curr_node->theta + theta), 2));
 
         // Do not allow turns if the robot is within threshold of the goal
-        if (h < 5 && time == this->turn_time_step)
+        if (h <= 2 && time == this->turn_time_step)
         {
             continue;
         }
@@ -149,7 +154,7 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
     // determine the robot collision footprint
     std::vector<std::vector<int>> robot_footprint;
     // set inflation radius to 1 for pallet goal and 2 for dropoff goal
-    int inflation_radius = is_pallet_goal ? 1 : 2;
+    int inflation_radius = is_pallet_goal ? ROBOT_FOOTPRINT_RADIUS : ROBOT_FOOTPRINT_RADIUS_WITH_PALLET;
     for (int x = node->x - inflation_radius; x <= node->x + inflation_radius; x++)
     {
         for (int y = node->y - inflation_radius; y <= node->y + inflation_radius; y++)
@@ -189,10 +194,18 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
             continue;
         }
 
-        // If pallet goal and robot front x, front y, and p are on the pallet footprint, ignore collision
+        // // If pallet goal and robot front x, front y, and p are on the pallet footprint, ignore collision
+        // if (is_pallet_goal &&
+        //     std::find(pallet_footprint.begin(), pallet_footprint.end(), p) != pallet_footprint.end() &&
+        //     std::find(pallet_footprint.begin(), pallet_footprint.end(), front) != pallet_footprint.end())
+        // {
+        //     continue;
+        // }
+
+        // If is pallet goal and robot angle is within 45 degrees of the pallet goal, ignore collision
         if (is_pallet_goal &&
             std::find(pallet_footprint.begin(), pallet_footprint.end(), p) != pallet_footprint.end() &&
-            std::find(pallet_footprint.begin(), pallet_footprint.end(), front) != pallet_footprint.end())
+            abs(this->pallet_goal[2] - node->theta) < M_PI / 4)
         {
             continue;
         }
@@ -201,6 +214,9 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
         if (this->map[p[0]][p[1]] == 1)
         {
             // Print the point of collision
+            // std::cout << "Collision at: " << p[0] << ", " << p[1] << std::endl;
+            // Print the robot angle
+            // std::cout << "Robot angle: " << node->theta << std::endl;
             return true;
         }
     }
@@ -302,9 +318,9 @@ int MotionPlanner::a_star(bool is_pallet_goal)
             // check if the goal angle is within pi/4 radians of the current node angle
             if (abs(current_node->theta - goal_node->theta) <= M_PI / 4)
             {
-               goal_node = current_node;
-               break;
-            }   
+                goal_node = current_node;
+                break;
+            }
         }
 
         // Get the neighbors of the current node

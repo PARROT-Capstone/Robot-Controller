@@ -5,6 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import math
 import random
+import time
 
 # cd build and make the c++ code
 os.system("cd build && make")
@@ -36,11 +37,14 @@ print("Map size: " + str(map_size))
 
 # generate a random start, pallet, and goal pose within the map
 robotPoses = []
-robotPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# robotPoses.append(generateRandomPose(map_size[0], map_size[1]))
+robotPoses.append([200, 900, 0])
 palletPoses = []
-palletPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# palletPoses.append(generateRandomPose(map_size[0], map_size[1]))
+palletPoses.append([800, 500, 3 * math.pi / 2])
 goalPoses = []
-goalPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# goalPoses.append(generateRandomPose(map_size[0], map_size[1]))
+goalPoses.append([1200, 500, 0])
 
 # print the robot poses
 print("Robot poses:")
@@ -57,8 +61,13 @@ print("Goal poses:")
 for pose in goalPoses:
     print(pose)
 
-# plan a path from the robot poses to the goal poses
+# plan a path from the robot poses to the goal poses and time how long it takes
+tic = time.time()
 paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, goalPoses)
+toc = time.time()
+
+# print out the time it took to plan the path
+print("Time to plan path: " + str(toc - tic) + " seconds")
 
 # # print the planned paths
 # print("Paths:")
