@@ -13,11 +13,11 @@ public:
     int y;
     double theta;
     double time;
-    int g_value;
-    int h_value;
+    double g_value;
+    double h_value;
     Node *parent;
 
-    Node(int x, int y, double theta, double time, int g_value, int h_value, Node *parent);
+    Node(int x, int y, double theta, double time, double g_value, double h_value, Node *parent);
     ~Node();
 };
 
