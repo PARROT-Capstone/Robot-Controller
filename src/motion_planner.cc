@@ -208,14 +208,14 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
 
                 // if we have reached this point, we know we are checking for a collision between the robot and it's assigned pallet as it is trying to pick it up
                 // only check for self pallet collisions before the robot has picked up the pallet
-                if (is_pallet_goal)
-                {
-                    // if the x and y are not within the front of the robot, then the robot is in collision
-                    if (x < robot_front_x_min || x > robot_front_x_max || y < robot_front_y_min || y > robot_front_y_max)
-                    {
-                        return true;
-                    }
-                }
+                // if (is_pallet_goal)
+                // {
+                //     // if the x and y are not within the front of the robot, then the robot is in collision
+                //     if (x < robot_front_x_min || x > robot_front_x_max || y < robot_front_y_min || y > robot_front_y_max)
+                //     {
+                //         return true;
+                //     }
+                // }
             }
         }
     }

@@ -29,10 +29,6 @@ computerVision.cv_GetRobotPositions()
 computerVision.cv_runLocalizer()
 robotPoses = computerVision.cv_GetRobotPositions()
 
-# convert robot poses to 0 -> 2 pi
-# for i in range(len(robotPoses)):
-#     robotPoses[i][2] = -robotPoses[i][2]
-
 # print robotPoses
 for pose in robotPoses:
     print(pose)
@@ -45,7 +41,30 @@ goalPoses = []
 for pose in palletPoses:
     goalPoses.append([pose[0] - 300, pose[1], pose[2]])
 
+# simple path of robot going straight and then turning and then going straight again
+point0 = robotPoses[0].copy()
+point0.append(0)
+point0.append(0)
+
+point1 = point0.copy()
+point1[0] = point1[0] + 500
+point1[3] = 10
+
+point2 = point1.copy()
+point2[2] -= math.pi/2
+point2[3] += 5
+
+
+point3 = point2.copy()
+point3[1] = point3[1] + 300
+point3[3] += 10
+
+
+paths= [[point0, point1, point2, point3]]
+
 paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[1300, 800, 0]])
+for path in paths:
+    mainHelper.preconditionPath(path)
 
 
 # print the paths for each robot
@@ -58,48 +77,53 @@ threads = []
 robotNumber = len(paths)
 print("Robot number: ", robotNumber)
 robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
+import numpy as np
+sendCommands = np.zeros(robotNumber, dtype=bool)
 def Main_RequestsThreading(robotId):
     session = requests.Session()
     session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
     # TODO: change robot url
-    url = "http://parrot-robot3.wifi.local.cmu.edu"
+    url = "http://parrot-robot1.wifi.local.cmu.edu"
     while True:
-        velLeftLinear = robotCommands[i][0]
-        velRightLinear = robotCommands[i][1]
-        velLeftAng = velLeftLinear / constants.wheel_radius
-        velRightAng = velRightLinear / constants.wheel_radius
-        electromagnet_command = robotCommands[i][2]
+        # if sendCommands[robotId]:
+        if True:
+            sendCommands[robotId] = False
+            velLeftLinear = robotCommands[robotId][0]
+            velRightLinear = robotCommands[robotId][1]
+            velLeftAng = velLeftLinear / constants.wheel_radius
+            velRightAng = velRightLinear / constants.wheel_radius
+            electromagnet_command = robotCommands[robotId][2]
 
-        offset = 2
+            offset = 2
 
-        # convert angular velocity to pwm
-        scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
+            # convert angular velocity to pwm
+            scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
 
 
-        leftPWM = 90 + (velLeftAng * scaleFactor)
-        if velLeftAng > 0:
-            leftPWM += offset
-        elif velLeftAng < 0:
-            leftPWM -= offset
+            leftPWM = 90 + (velLeftAng * scaleFactor)
+            if velLeftAng > 0:
+                leftPWM += offset
+            elif velLeftAng < 0:
+                leftPWM -= offset
 
-        
-        rightPWM = 90 - (velRightAng * scaleFactor)
-        if velRightAng > 0:
-            rightPWM -= offset
-        elif velRightAng < 0:
-            rightPWM += offset
+            
+            rightPWM = 90 - (velRightAng * scaleFactor)
+            if velRightAng > 0:
+                rightPWM -= offset
+            elif velRightAng < 0:
+                rightPWM += offset
 
-        
-        if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
-            emJson = {"dtype": "pallet",
-                    "power": (1 if electromagnet_command == constants.ELECTROMAGNET_ENABLE else 0)}
-            session.post(url, data=emJson)
+            
+            if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
+                emJson = {"dtype": "pallet",
+                        "power": (1 if electromagnet_command == constants.ELECTROMAGNET_ENABLE else 0)}
+                session.post(url, data=emJson)
 
-        servoJson = {"dtype": "speed", 
-                    "servo1": int(leftPWM),
-                    "servo2": int(rightPWM)
-                }
-        session.post(url, data=servoJson)
+            servoJson = {"dtype": "speed", 
+                        "servo1": int(leftPWM),
+                        "servo2": int(rightPWM)
+                    }
+            session.post(url, data=servoJson)
 
 for i in range(robotNumber):
     thread = threading.Thread(target=Main_RequestsThreading, args=(i,))
@@ -122,6 +146,7 @@ while True:
         robotCommands[i] = robotCommand
         velLeftLinear, velRightLinear, electromagnet_command = robotCommand
         print("Controller Framerate: ", 1/(time.time() - start))
+        sendCommands[i] = True
     # asyncio.run(mainHelper.Main_SendRobotControls(robotCommands))
     print("PostReq Framerate: ", 1/(time.time() - start))
     computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)

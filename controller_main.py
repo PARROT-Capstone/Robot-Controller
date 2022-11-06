@@ -67,10 +67,10 @@ class Controller:
         pastPoint, nextPoint = self.controller_getPastNextPoints(relativeTime)
 
         # Interpolate between past and next points
-        xFunc, yFunc = self.controller_getInterpolation(pastPoint, nextPoint)
+        xFunc, yFunc, thetaFunc = self.controller_getInterpolation(pastPoint, nextPoint)
 
         # Find next point in sequence in global coordinates
-        targetPose_global, dxdt, dydt = self.controller_getNextTargetPoint(relativeTime, pastPoint, nextPoint, xFunc, yFunc)
+        targetPose_global, dxdt, dydt = self.controller_getNextTargetPoint(relativeTime, pastPoint, nextPoint, xFunc, yFunc, thetaFunc)
         # print("Target Pose: ", targetPose_global)
 
         # Find error in robot coordinates
@@ -106,7 +106,7 @@ class Controller:
         self.errorDiff_robot = tuple(np.subtract(self.robotError, self.robotErrorLast)) # TODO: account for wrap around with theta error
 
         # Find Feedforward term
-        feedforward = self.controller_getFeedforwardTerm(relativeTime, xFunc, yFunc, dxdt, dydt)
+        feedforward = self.controller_getFeedforwardTerm(relativeTime, xFunc, yFunc, thetaFunc, dxdt, dydt)
 
         # Find Feedback term
         feedback = self.controller_getFeedbackTerm()
@@ -167,6 +167,7 @@ class Controller:
         if pastPoint[timeIndex] == nextPoint[timeIndex]:
             xFunc = lambda t: pastPoint[xIndex]
             yFunc = lambda t: pastPoint[yIndex]
+            thetaFunc = None
         # if Thetas are same, drive straight
         elif pastPoint[thetaIndex] == nextPoint[thetaIndex]:
             deltaX = nextPoint[xIndex] - pastPoint[xIndex]
@@ -174,6 +175,13 @@ class Controller:
             deltaT = nextPoint[timeIndex] - pastPoint[timeIndex]
             xFunc = lambda t: pastPoint[xIndex] + (t-pastPoint[timeIndex]) * deltaX / deltaT
             yFunc = lambda t: pastPoint[yIndex] + (t-pastPoint[timeIndex]) * deltaY / deltaT
+            thetaFunc = None
+        elif pastPoint[xIndex] == nextPoint[xIndex] and pastPoint[yIndex] == nextPoint[yIndex]:
+            xFunc = lambda t: pastPoint[xIndex]
+            yFunc = lambda t: pastPoint[yIndex]
+
+            #TODO: Pick shortest theta delta
+            thetaFunc = lambda t: ((nextPoint[thetaIndex] - pastPoint[thetaIndex]) * ((t-pastPoint[timeIndex]) / (nextPoint[timeIndex] - pastPoint[timeIndex]))) + pastPoint[thetaIndex]
         # spline interpolation
         else:
             # https://stackoverflow.com/questions/36644259/cubic-hermit-spline-interpolation-python
@@ -213,26 +221,34 @@ class Controller:
             deltaT = nextPoint[timeIndex] - pastPoint[timeIndex]
             xFunc = lambda t: xPoints(l*(t-pastPoint[timeIndex]) / deltaT)
             yFunc = lambda t: yPoints(l*(t-pastPoint[timeIndex]) / deltaT)
+            thetaFunc = None
 
             
-        return (xFunc, yFunc)
+        return (xFunc, yFunc, thetaFunc)
 
     # Gets next target point - ((x, y, theta), dxdt, dydt)
-    def controller_getNextTargetPoint(self, relativeTime, pastPoint, nextPoint, xFunc, yFunc):
+    def controller_getNextTargetPoint(self, relativeTime, pastPoint, nextPoint, xFunc, yFunc, thetaFunc):
         if relativeTime >= nextPoint[timeIndex]:
             return ((nextPoint[xIndex], nextPoint[yIndex], nextPoint[thetaIndex]), 0, 0)
         if relativeTime < pastPoint[timeIndex]:
             return ((pastPoint[xIndex], pastPoint[yIndex], pastPoint[thetaIndex]), 0, 0)
-
-        x = xFunc(relativeTime)
-        y = yFunc(relativeTime)
-        dxdt = derivative(xFunc, relativeTime, n=1, dx=dt)
-        dydt = derivative(yFunc, relativeTime, n=1, dx=dt)
-        if (pastPoint[thetaIndex] == nextPoint[thetaIndex]):
-            theta = pastPoint[thetaIndex]
+        
+        if thetaFunc is not None:
+            x = xFunc(relativeTime)
+            y = yFunc(relativeTime)
+            theta = thetaFunc(relativeTime)
+            dxdt = 0
+            dydt = 0
         else:
-            # TODO: dxdt and dydt are both 0
-            theta = math.atan2(dydt, dxdt)
+            x = xFunc(relativeTime)
+            y = yFunc(relativeTime)
+            dxdt = derivative(xFunc, relativeTime, n=1, dx=dt)
+            dydt = derivative(yFunc, relativeTime, n=1, dx=dt)
+            if (pastPoint[thetaIndex] == nextPoint[thetaIndex]):
+                theta = pastPoint[thetaIndex]
+            else:
+                # TODO: dxdt and dydt are both 0
+                theta = math.atan2(dydt, dxdt)
 
         return ((float(x), float(y), theta), dxdt, dydt)
     
@@ -248,19 +264,23 @@ class Controller:
         return (float(errorRobot_robot[xIndex]), float(errorRobot_robot[yIndex]), errorTheta)
 
     # Returns (linear velocity, angular velocity)
-    def controller_getFeedforwardTerm(self, relativeTime, xFunc, yFunc, dxdt, dydt):
+    def controller_getFeedforwardTerm(self, relativeTime, xFunc, yFunc, thetaFunc, dxdt, dydt):
         # Considering bounds of path
         if (relativeTime < self.robotPath[0][timeIndex]) or (relativeTime >= self.robotPath[-1][timeIndex]):
             return (0, 0)
-
-        d2xdt2 = derivative(xFunc, relativeTime, n=2,dx=dt)
-        d2ydt2 = derivative(yFunc, relativeTime, n=2, dx=dt)
-        linearVelocity = math.sqrt(dxdt**2 + dydt**2)
-        if (linearVelocity == 0):
-            curvature = 0
+        
+        if thetaFunc is not None:
+            linearVelocity = 0
+            angularVelocity = derivative(thetaFunc, relativeTime, n=1, dx=dt)
         else:
-            curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
-        angularVelocity = linearVelocity * curvature
+            d2xdt2 = derivative(xFunc, relativeTime, n=2,dx=dt)
+            d2ydt2 = derivative(yFunc, relativeTime, n=2, dx=dt)
+            linearVelocity = math.sqrt(dxdt**2 + dydt**2)
+            if (linearVelocity == 0):
+                curvature = 0
+            else:
+                curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
+            angularVelocity = linearVelocity * curvature
         return (linearVelocity, angularVelocity)
 
     # Returns (linear velocity, angular velocity)

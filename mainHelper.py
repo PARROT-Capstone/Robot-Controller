@@ -89,3 +89,17 @@ async def Main_SendRobotControls(robotCommands):
             robotCommand = robotCommands[i]
             velLeftLinear, velRightLinear, electromagnet_command = robotCommand
             await _Main_SendOneRobotControl(session, i, velLeftLinear, velRightLinear, electromagnet_command)
+
+def preconditionPath(path):
+    # scroll through all the path points, if the next one has the same orientation, remove it
+    # but keep straight line if one has deleted over 50 points
+    i = 0
+    pop_count = 0
+    pop_threshold = 3
+    while i < len(path) - 1:
+        if path[i][2] == path[i+1][2] and pop_count < pop_threshold and path[i][4] == 0: #2 is theta index, hardcoded for now :)
+            path.pop(i)
+            pop_count += 1
+        else:
+            i += 1
+            pop_count = 0
