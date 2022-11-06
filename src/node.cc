@@ -1,6 +1,6 @@
 #include "node.hh"
 
-Node::Node(int x, int y, double theta, double time, int g_value, int h_value, Node *parent)
+Node::Node(int x, int y, double theta, double time, double g_value, double h_value, Node *parent)
 {
     this->x = x;
     this->y = y;

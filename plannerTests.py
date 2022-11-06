@@ -37,14 +37,14 @@ print("Map size: " + str(map_size))
 
 # generate a random start, pallet, and goal pose within the map
 robotPoses = []
-# robotPoses.append(generateRandomPose(map_size[0], map_size[1]))
-robotPoses.append([200, 900, 0])
+robotPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# robotPoses.append([200, 900, 0])
 palletPoses = []
-# palletPoses.append(generateRandomPose(map_size[0], map_size[1]))
-palletPoses.append([800, 500, 3 * math.pi / 2])
+palletPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# palletPoses.append([800, 500, 3 * math.pi / 2])
 goalPoses = []
-# goalPoses.append(generateRandomPose(map_size[0], map_size[1]))
-goalPoses.append([1200, 500, 0])
+goalPoses.append(generateRandomPose(map_size[0], map_size[1]))
+# goalPoses.append([1200, 500, 0])
 
 # print the robot poses
 print("Robot poses:")
@@ -84,7 +84,7 @@ plt.ylim(0, map_size[1])
 # plot arrows for each point in the robot paths
                 
 # plot the pallet poses
-plt.scatter([pose[0] for pose in palletPoses], [pose[1] for pose in palletPoses], c='orange')
+plt.scatter([pose[0] for pose in palletPoses], [pose[1] for pose in palletPoses], c='yellow')
 
 #plot the goal poses
 plt.scatter([pose[0] for pose in goalPoses], [pose[1] for pose in goalPoses], c='red')

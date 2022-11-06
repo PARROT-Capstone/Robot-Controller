@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 
 MotionPlanner::MotionPlanner(int robot_index)
 {
@@ -110,31 +111,40 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
     int dir = (int)floor(theta / (M_PI / 4));
 
     // Get the list of dx, dy, and theta for the neighbors
-    std::vector<std::vector<double>> neighbor_dxdythetadtimes = this->angle_to_dxdythetadtimes[dir];
+    std::vector<std::vector<double>> neighbor_dxdythetadtimecosts = this->angle_to_dxdythetadtimecosts[dir];
+
+    // add rotate in place neighbors
+    if (ALLOW_IN_PLACE_TURN)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            // if the robot is not at the pallet goal and not current rotation, then it can rotate in place
+            if (i != dir)
+            {
+                neighbor_dxdythetadtimecosts.push_back({0, 0, i * M_PI / 8, TURN_TIME_STEP, IN_PLACE_TURN_COST});
+            }
+        }
+    }
 
     // set the goal based on the pallet_goal or dropoff_goal
     std::vector<double> goal = is_pallet_goal ? this->pallet_goal : this->dropoff_goal;
 
     // For each neighbor, create a new node and add it to the list of neighbors
-    for (auto &neighbor_dxdythetadtime : neighbor_dxdythetadtimes)
+    for (auto &neighbor_dxdythetadtimecost : neighbor_dxdythetadtimecosts)
     {
-        double dx = neighbor_dxdythetadtime[0];
-        double dy = neighbor_dxdythetadtime[1];
-        double theta = neighbor_dxdythetadtime[2];
-        double time = neighbor_dxdythetadtime[3];
+        double dx = neighbor_dxdythetadtimecost[0];
+        double dy = neighbor_dxdythetadtimecost[1];
+        double theta = neighbor_dxdythetadtimecost[2];
+        double time = neighbor_dxdythetadtimecost[3];
+        double cost = neighbor_dxdythetadtimecost[4];
 
         // calculate the g and h values for the neighbor
-        int g = curr_node->g_value + (int)time;
-        // Penalize the g value if the robot has to turn
-        if (theta != curr_node->theta)
-        {
-            g += TURN_TIME_STEP;
-        }
+        double g = curr_node->g_value + cost;
         // calculate h value using euclidean distance
-        int h = (int)sqrt(pow(goal[0] - (curr_node->x + dx), 2) + pow(goal[1] - (curr_node->y + dy), 2) + pow(goal[2] - (curr_node->theta + theta), 2));
+        double h = sqrt(pow(goal[0] - (curr_node->x + dx), 2) + pow(goal[1] - (curr_node->y + dy), 2) + pow(goal[2] - (curr_node->theta + theta), 2));
 
         // Do not allow turns if the robot is within threshold of the goal
-        if (h <= 2 && time == this->turn_time_step)
+        if (h <= NO_TURN_THRESH && (cost == IN_PLACE_TURN_COST || cost == TURN_COST))
         {
             continue;
         }
@@ -151,99 +161,57 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
 
 bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
 {
-    // determine the robot collision footprint
-    std::vector<std::vector<int>> robot_footprint;
-    // set inflation radius to 1 for pallet goal and 2 for dropoff goal
-    int inflation_radius = is_pallet_goal ? ROBOT_FOOTPRINT_RADIUS : ROBOT_FOOTPRINT_RADIUS_WITH_PALLET;
-    for (int x = node->x - inflation_radius; x <= node->x + inflation_radius; x++)
+    // set the inflation radius based on the goal type
+    int robot_inflation_radius = is_pallet_goal ? ROBOT_FOOTPRINT_RADIUS : ROBOT_FOOTPRINT_RADIUS_WITH_PALLET;
+
+    // calculate the x and y bounds of the robot given the inflation radius
+    int x_min = node->x - robot_inflation_radius;
+    int x_max = node->x + robot_inflation_radius;
+    int y_min = node->y - robot_inflation_radius;
+    int y_max = node->y + robot_inflation_radius;
+
+    // calculate the x and y bounds of the pallet goal given the inflation radius
+    int pallet_x_min = this->pallet_goal[0] - PALLET_FOOTPRINT_RADIUS;
+    int pallet_x_max = this->pallet_goal[0] + PALLET_FOOTPRINT_RADIUS;
+    int pallet_y_min = this->pallet_goal[1] - PALLET_FOOTPRINT_RADIUS;
+    int pallet_y_max = this->pallet_goal[1] + PALLET_FOOTPRINT_RADIUS;
+
+    // offset the robot center towards the front of the robot by a specified amount
+    int robot_offset_x = (int)(ROBOT_OFFSET * cos(node->theta)) + node->x;
+    int robot_offset_y = (int)(ROBOT_OFFSET * sin(node->theta)) + node->y;
+
+    // calculate the x and y bounds of the front of the robot given the inflation radius
+    int robot_front_x_min = robot_offset_x - PALLET_FOOTPRINT_RADIUS;
+    int robot_front_x_max = robot_offset_x + PALLET_FOOTPRINT_RADIUS;
+    int robot_front_y_min = robot_offset_y - PALLET_FOOTPRINT_RADIUS;
+    int robot_front_y_max = robot_offset_y + PALLET_FOOTPRINT_RADIUS;
+
+    // ensure the robot is within the map bounds
+    if (x_min < 0 || x_max >= this->map.size() || y_min < 0 || y_max >= this->map[0].size())
     {
-        for (int y = node->y - inflation_radius; y <= node->y + inflation_radius; y++)
-        {
-            robot_footprint.push_back({x, y});
-        }
+        return true;
     }
 
-    // determine the pallet collision footprint (if pallet goal) using the pallet goal
-    std::vector<std::vector<int>> pallet_footprint;
-    for (int x = this->pallet_goal[0] - 1; x <= this->pallet_goal[0] + 1; x++)
+    // check if the robot is in collision with any obstacles
+    // check if any static obstacles are in the robot's footprint
+    for (int x = x_min; x <= x_max; x++)
     {
-        for (int y = this->pallet_goal[1] - 1; y <= this->pallet_goal[1] + 1; y++)
+        for (int y = y_min; y <= y_max; y++)
         {
-            pallet_footprint.push_back({x, y});
-        }
-    }
-
-    // determine the x and y of the front of the robot
-    int front_x = node->x + cos(node->theta);
-    int front_y = node->y + sin(node->theta);
-    // convert to vector
-    std::vector<int> front = {front_x, front_y};
-
-    // Check if the robot is in static collision with the map.
-    for (auto &p : robot_footprint)
-    {
-        // If robot is out of bounds, return true
-        if (p[0] < 0 || p[0] >= this->map.size() || p[1] < 0 || p[1] >= this->map[0].size())
-        {
-            return true;
-        }
-
-        // If dropoff goal, ignore collisions with the pallet footprint
-        if (!is_pallet_goal && std::find(pallet_footprint.begin(), pallet_footprint.end(), p) != pallet_footprint.end())
-        {
-            continue;
-        }
-
-        // // If pallet goal and robot front x, front y, and p are on the pallet footprint, ignore collision
-        // if (is_pallet_goal &&
-        //     std::find(pallet_footprint.begin(), pallet_footprint.end(), p) != pallet_footprint.end() &&
-        //     std::find(pallet_footprint.begin(), pallet_footprint.end(), front) != pallet_footprint.end())
-        // {
-        //     continue;
-        // }
-
-        // If is pallet goal and robot angle is within 45 degrees of the pallet goal, ignore collision
-        if (is_pallet_goal &&
-            std::find(pallet_footprint.begin(), pallet_footprint.end(), p) != pallet_footprint.end() &&
-            abs(this->pallet_goal[2] - node->theta) < M_PI / 4)
-        {
-            continue;
-        }
-
-        // If robot is in collision with the map, return true
-        if (this->map[p[0]][p[1]] == 1)
-        {
-            // Print the point of collision
-            // std::cout << "Collision at: " << p[0] << ", " << p[1] << std::endl;
-            // Print the robot angle
-            // std::cout << "Robot angle: " << node->theta << std::endl;
-            return true;
-        }
-    }
-
-    // Check if the robot is in dynamic collision with other robots.
-    for (auto &robot_path : this->paths)
-    {
-        // For each point in the robot path
-        for (auto &path_point : robot_path)
-        {
-            // If the robot is in a 1 second window of the path point, check for collision
-            if (abs(node->time - path_point[3]) <= 1)
+            if (this->map[x][y] == 1)
             {
-                // Create a footprint for the other robot at the path point, inflated by 2
-                std::vector<std::vector<int>> other_robot_footprint;
-                for (int x = path_point[0] - 2; x <= path_point[0] + 2; x++)
+                // if the pallet is not the robots pallet, then the robot is in collision
+                if (x < pallet_x_min || x > pallet_x_max || y < pallet_y_min || y > pallet_y_max)
                 {
-                    for (int y = path_point[1] - 2; y <= path_point[1] + 2; y++)
-                    {
-                        other_robot_footprint.push_back({x, y});
-                    }
+                    return true;
                 }
 
-                // Check if the two footprints overlap
-                for (auto &p : robot_footprint)
+                // if we have reached this point, we know we are checking for a collision between the robot and it's assigned pallet as it is trying to pick it up
+                // only check for self pallet collisions before the robot has picked up the pallet
+                if (is_pallet_goal)
                 {
-                    if (std::find(other_robot_footprint.begin(), other_robot_footprint.end(), p) != other_robot_footprint.end())
+                    // if the x and y are not within the front of the robot, then the robot is in collision
+                    if (x < robot_front_x_min || x > robot_front_x_max || y < robot_front_y_min || y > robot_front_y_max)
                     {
                         return true;
                     }
@@ -251,6 +219,39 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
             }
         }
     }
+
+    // check if the robot is in
+
+    // // Check if the robot is in dynamic collision with other robots.
+    // for (auto &robot_path : this->paths)
+    // {
+    //     // For each point in the robot path
+    //     for (auto &path_point : robot_path)
+    //     {
+    //         // If the robot is in a 1 second window of the path point, check for collision
+    //         if (abs(node->time - path_point[3]) <= 1)
+    //         {
+    //             // Create a footprint for the other robot at the path point, inflated by 2
+    //             std::vector<std::vector<int>> other_robot_footprint;
+    //             for (int x = path_point[0] - 2; x <= path_point[0] + 2; x++)
+    //             {
+    //                 for (int y = path_point[1] - 2; y <= path_point[1] + 2; y++)
+    //                 {
+    //                     other_robot_footprint.push_back({x, y});
+    //                 }
+    //             }
+
+    //             // Check if the two footprints overlap
+    //             for (auto &p : robot_footprint)
+    //             {
+    //                 if (std::find(other_robot_footprint.begin(), other_robot_footprint.end(), p) != other_robot_footprint.end())
+    //                 {
+    //                     return true;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     // If no collision, return false
     return false;
@@ -270,9 +271,9 @@ int MotionPlanner::a_star(bool is_pallet_goal)
     std::priority_queue<Node *, std::vector<Node *>, OpenListNodeComparator> open_list = std::priority_queue<Node *, std::vector<Node *>, OpenListNodeComparator>();
 
     // Create the start and goal nodes
-    int start_h_value = abs(start[0] - goal[0]) + abs(start[1] - goal[1]);
+    double start_h_value = sqrt(pow(goal[0] - start[0], 2) + pow(goal[1] - start[1], 2) + pow(goal[2] - start[2], 2));
     Node *start_node = new Node((int)start[0], (int)start[1], start[2], start_time, 0, start_h_value, nullptr);
-    int goal_h_value = 0;
+    double goal_h_value = 0;
     Node *goal_node = new Node((int)goal[0], (int)goal[1], goal[2], 0.0, 0, goal_h_value, nullptr);
 
     // Print the start and goal nodes for debugging
@@ -291,6 +292,9 @@ int MotionPlanner::a_star(bool is_pallet_goal)
 
     // Create the closed list of Nodes
     std::unordered_set<Node *, NodeHasher, ClosedListNodeComparator> closed_list = std::unordered_set<Node *, NodeHasher, ClosedListNodeComparator>();
+
+    // Create a timer to limit the search time
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // while the open list is not empty
     while (!open_list.empty())
@@ -321,6 +325,9 @@ int MotionPlanner::a_star(bool is_pallet_goal)
                 goal_node = current_node;
                 break;
             }
+
+            // goal_node = current_node;
+            // break;
         }
 
         // Get the neighbors of the current node
@@ -344,6 +351,14 @@ int MotionPlanner::a_star(bool is_pallet_goal)
             {
                 open_list.push(neighbor);
             }
+        }
+
+        // Check if the search time has exceeded the limit
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() > 10)
+        {
+            std::cout << "Search time exceeded" << std::endl;
+            break;
         }
     }
 

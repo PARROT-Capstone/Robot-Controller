@@ -7,6 +7,8 @@ from scipy.misc import derivative
 import mainHelper
 import constants
 import matplotlib.pyplot as plt
+from scipy import interpolate
+
 
 Kpx = constants.CONTROLS_ROBOT_PID_KPx
 Kdx = constants.CONTROLS_ROBOT_PID_KDx
@@ -164,7 +166,7 @@ class Controller:
     def controller_getInterpolation(self, pastPoint, nextPoint):
         if pastPoint[timeIndex] == nextPoint[timeIndex]:
             xFunc = lambda t: pastPoint[xIndex]
-            yFunc = lambda t: nextPoint[xIndex]
+            yFunc = lambda t: pastPoint[yIndex]
         # if Thetas are same, drive straight
         elif pastPoint[thetaIndex] == nextPoint[thetaIndex]:
             deltaX = nextPoint[xIndex] - pastPoint[xIndex]
@@ -174,22 +176,45 @@ class Controller:
             yFunc = lambda t: pastPoint[yIndex] + (t-pastPoint[timeIndex]) * deltaY / deltaT
         # spline interpolation
         else:
-            times = [pastPoint[timeIndex]-constants.controlsDeltaTime, pastPoint[timeIndex], pastPoint[timeIndex]+constants.controlsDeltaTime,
-                    nextPoint[timeIndex]-constants.controlsDeltaTime, nextPoint[timeIndex], nextPoint[timeIndex]+constants.controlsDeltaTime]
-            x = [pastPoint[xIndex]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(pastPoint[thetaIndex]),
-                pastPoint[xIndex],
-                pastPoint[xIndex]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(pastPoint[thetaIndex]),
-                nextPoint[xIndex]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(nextPoint[thetaIndex]),
-                nextPoint[xIndex],
-                nextPoint[xIndex]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.cos(nextPoint[thetaIndex])]
-            y = [pastPoint[yIndex]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(pastPoint[thetaIndex]),
-                pastPoint[yIndex],
-                pastPoint[yIndex]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(pastPoint[thetaIndex]),
-                nextPoint[yIndex]-constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(nextPoint[thetaIndex]),
-                nextPoint[yIndex],
-                nextPoint[yIndex]+constants.controlsLinearSpeed*constants.controlsDeltaTime*math.sin(nextPoint[thetaIndex])]
-            xFunc = interp1d(times, x, kind='cubic', fill_value="extrapolate")
-            yFunc = interp1d(times, y, kind='cubic', fill_value="extrapolate")
+            # https://stackoverflow.com/questions/36644259/cubic-hermit-spline-interpolation-python
+            # resolution = float(resolution)
+            points = np.asarray([[pastPoint[xIndex], pastPoint[yIndex]], [nextPoint[xIndex], nextPoint[yIndex]]])
+            tangents = np.asarray([[np.cos(pastPoint[thetaIndex]), np.sin(pastPoint[thetaIndex])], [np.cos(nextPoint[thetaIndex]), np.sin(nextPoint[thetaIndex])]])
+            tangents = tangents * constants.tangent_curviness
+            nPoints, dim = points.shape
+
+            # Parametrization parameter s.
+            dp = np.diff(points, axis=0)                 # difference between points
+            dp = np.linalg.norm(dp, axis=1)              # distance between points
+            d = np.cumsum(dp)                            # cumsum along the segments
+            d = np.hstack([[0],d])                       # add distance from first point
+            l = d[-1]                                    # length of point sequence
+            # nSamples = int(l/resolution)                 # number of samples
+            # s,r = np.linspace(0,l,nSamples,retstep=True) # sample parameter and step
+
+            # Bring points and (optional) tangent information into correct format.
+            assert(len(points) == len(tangents))
+            data = np.empty([nPoints, dim], dtype=object)
+            for i,p in enumerate(points):
+                t = tangents[i]
+                # Either tangent is None or has the same
+                # number of dimensions as the point p.
+                assert(t is None or len(t)==dim)
+                fuse = list(zip(p,t) if t is not None else zip(p,))
+                data[i,:] = fuse
+
+            # Compute splines per dimension separately.
+            # samples = np.zeros([nSamples, dim])
+            xPoints = interpolate.BPoly.from_derivatives(d, data[:,0])
+            yPoints = interpolate.BPoly.from_derivatives(d, data[:,1])
+            # for i in range(dim):
+            #     poly = interpolate.BPoly.from_derivatives(d, data[:,i])
+            #     samples[:,i] = poly(s)
+            deltaT = nextPoint[timeIndex] - pastPoint[timeIndex]
+            xFunc = lambda t: xPoints(l*(t-pastPoint[timeIndex]) / deltaT)
+            yFunc = lambda t: yPoints(l*(t-pastPoint[timeIndex]) / deltaT)
+
+            
         return (xFunc, yFunc)
 
     # Gets next target point - ((x, y, theta), dxdt, dydt)

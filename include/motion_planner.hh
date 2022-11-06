@@ -130,15 +130,15 @@ private:
 
     // map between discretized angle (between 0 and 7) and list of dx, dy, theta. 0 points to the right.
     // TODO make sure these neighbors are correct
-    std::map<int, std::vector<std::vector<double>>> angle_to_dxdythetadtimes = {
-        {0, {{1, 0, 0.0, this->straight_time_step}, {5, -5, M_PI / 4, this->turn_time_step}, {5, 5, 7 * M_PI / 4, this->turn_time_step}}},
-        {1, {{1, -1, M_PI / 4, this->straight_time_step}, {0, -5, M_PI / 2, this->turn_time_step}, {5, 0, 0, this->turn_time_step}}},
-        {2, {{0, -1, M_PI / 2, this->straight_time_step}, {-5, -5, 3 * M_PI / 4, this->turn_time_step}, {5, -5, M_PI / 4, this->turn_time_step}}},
-        {3, {{-1, -1, 3 * M_PI / 4, this->straight_time_step}, {-5, 0, M_PI, this->turn_time_step}, {0, -5, M_PI / 2, this->turn_time_step}}},
-        {4, {{-1, 0, M_PI, this->straight_time_step}, {-5, 5, 5 * M_PI / 4, this->turn_time_step}, {-5, -5, 3 * M_PI / 4, this->turn_time_step}}},
-        {5, {{-1, 1, 5 * M_PI / 4, this->straight_time_step}, {0, 5, 3 * M_PI / 2, this->turn_time_step}, {-5, 0, M_PI, this->turn_time_step}}},
-        {6, {{0, 1, 3 * M_PI / 2, this->straight_time_step}, {5, 5, 7 * M_PI / 4, this->turn_time_step}, {-5, 5, 5 * M_PI / 4, this->turn_time_step}}},
-        {7, {{1, 1, 7 * M_PI / 4, this->straight_time_step}, {5, 0, 0.0, this->turn_time_step}, {0, 5, 3 * M_PI / 2, this->turn_time_step}}}};
+    std::map<int, std::vector<std::vector<double>>> angle_to_dxdythetadtimecosts = {
+        {0, {{1, 0, 0.0, this->straight_time_step, STRAIGHT_COST}, {5, -5, M_PI / 4, this->turn_time_step, TURN_COST}, {5, 5, 7 * M_PI / 4, this->turn_time_step, TURN_COST}}},
+        {1, {{1, -1, M_PI / 4, this->straight_time_step, STRAIGHT_COST}, {0, -5, M_PI / 2, this->turn_time_step, TURN_COST}, {5, 0, 0, this->turn_time_step, TURN_COST}}},
+        {2, {{0, -1, M_PI / 2, this->straight_time_step, STRAIGHT_COST}, {-5, -5, 3 * M_PI / 4, this->turn_time_step, TURN_COST}, {5, -5, M_PI / 4, this->turn_time_step, TURN_COST}}},
+        {3, {{-1, -1, 3 * M_PI / 4, this->straight_time_step, STRAIGHT_COST}, {-5, 0, M_PI, this->turn_time_step, TURN_COST}, {0, -5, M_PI / 2, this->turn_time_step, TURN_COST}}},
+        {4, {{-1, 0, M_PI, this->straight_time_step, STRAIGHT_COST}, {-5, 5, 5 * M_PI / 4, this->turn_time_step, TURN_COST}, {-5, -5, 3 * M_PI / 4, this->turn_time_step, TURN_COST}}},
+        {5, {{-1, 1, 5 * M_PI / 4, this->straight_time_step, STRAIGHT_COST}, {0, 5, 3 * M_PI / 2, this->turn_time_step, TURN_COST}, {-5, 0, M_PI, this->turn_time_step, TURN_COST}}},
+        {6, {{0, 1, 3 * M_PI / 2, this->straight_time_step, STRAIGHT_COST}, {5, 5, 7 * M_PI / 4, this->turn_time_step, TURN_COST}, {-5, 5, 5 * M_PI / 4, this->turn_time_step, TURN_COST}}},
+        {7, {{1, 1, 7 * M_PI / 4, this->straight_time_step, STRAIGHT_COST}, {5, 0, 0.0, this->turn_time_step, TURN_COST}, {0, 5, 3 * M_PI / 2, this->turn_time_step, TURN_COST}}}};
 };
 
 #endif // MOTION_PLANNER_HH
