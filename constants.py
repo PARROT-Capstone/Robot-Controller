@@ -73,8 +73,7 @@ Controls Constants
 wheel_base = 100 # mm # wheelbase is actually 100mm
 half_wheel_base = 50 # mm # wheelbase is actually 100mm
 wheel_radius = 30 # mm
-controlsLinearSpeed = 1 #mm/s
-controlsDeltaTime = 0.001 #s
+tangent_curviness = 1.25 # multiplier for curviness of the spline interpolation
 maxRobotSpeed = 100 #mm/s
 CONTROLS_DEBUG = False
 CONTROLS_ELECTROMAGNET_TIME_THRESHOLD = 0.5 #s
