@@ -134,6 +134,11 @@ class CV_Fiducial:
                 orientation = math.atan2(math.sin(orientation), math.cos(orientation))
                 orientation = orientation * -1 # negate the angle to make it match the robot's coordinate system
 
+                # shift the pallets back by a constant amount to account for the robot's offset from the center of the pallet
+                if fiducial_id in constants.PALLET_FIDUCIALS:
+                    centerX = centerX - (constants.CV_PALLET_CENTER_OFFSET * math.cos(orientation))
+                    centerY = centerY + (constants.CV_PALLET_CENTER_OFFSET * math.sin(orientation))
+
                 # reserve the extra processing for the robot fiducials
                 if fiducial_id in constants.ROBOT_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:
                     # estimate the pose of the marker

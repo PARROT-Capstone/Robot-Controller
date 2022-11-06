@@ -45,7 +45,8 @@ goalPoses = []
 for pose in palletPoses:
     goalPoses.append([pose[0] - 300, pose[1], pose[2]])
 
-paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[100, 100, 0]])
+paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[1300, 800, 0]])
+
 
 # print the paths for each robot
 for i in range(len(paths)):
@@ -55,17 +56,19 @@ for i in range(len(paths)):
 
 threads = []
 robotNumber = len(paths)
+print("Robot number: ", robotNumber)
 robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
 def Main_RequestsThreading(robotId):
     session = requests.Session()
     session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
     # TODO: change robot url
-    url = "http://parrot-robot1.wifi.local.cmu.edu"
+    url = "http://parrot-robot3.wifi.local.cmu.edu"
     while True:
         velLeftLinear = robotCommands[i][0]
         velRightLinear = robotCommands[i][1]
         velLeftAng = velLeftLinear / constants.wheel_radius
         velRightAng = velRightLinear / constants.wheel_radius
+        electromagnet_command = robotCommands[i][2]
 
         offset = 2
 

@@ -39,6 +39,8 @@ CAMERA_MATRIX = np.array([[2.03722817e+03, 0.00000000e+00, 1.50860597e+03], \
     [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
 DISTORTION_COEFFICIENTS = np.array([[ 1.13393179e-01, -2.99566559e-01, -1.80836671e-05, -7.23427956e-05, 2.41628393e-01]])
 
+CV_PALLET_CENTER_OFFSET = 50 # mm or pixels
+
 if CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
 
     CV_LEDS_PER_ROBOT = 5
@@ -73,8 +75,8 @@ Controls Constants
 wheel_base = 100 # mm # wheelbase is actually 100mm
 half_wheel_base = 50 # mm # wheelbase is actually 100mm
 wheel_radius = 30 # mm
-controlsLinearSpeed = 1 #mm/s
-controlsDeltaTime = 0.001 #s
+controlsLinearSpeed = 10 #mm/s
+controlsDeltaTime = 1 #s
 maxRobotSpeed = 100 #mm/s
 CONTROLS_DEBUG = False
 CONTROLS_ELECTROMAGNET_TIME_THRESHOLD = 0.5 #s
@@ -88,10 +90,10 @@ CONTROLS_MIN_PWM = 90 - CONTROLS_MAX_PWM_OFFSET
 CONTROLS_ROBOT_PID_KPx = 1
 CONTROLS_ROBOT_PID_KIx = 0.0
 CONTROLS_ROBOT_PID_KDx = 1
-CONTROLS_ROBOT_PID_KPy = 0.02
+CONTROLS_ROBOT_PID_KPy = 0.015
 CONTROLS_ROBOT_PID_KIy = 0.0
 CONTROLS_ROBOT_PID_KDy = 0.0
-CONTROLS_ROBOT_PID_KPtheta = 1
+CONTROLS_ROBOT_PID_KPtheta = 0.8
 CONTROLS_ROBOT_PID_KItheta = 0.0
 CONTROLS_ROBOT_PID_KDtheta = 0.0
 
