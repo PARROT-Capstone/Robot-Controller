@@ -84,6 +84,7 @@ def Main_RequestsThreading(robotId):
     session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
     # TODO: change robot url
     url = "http://parrot-robot1.wifi.local.cmu.edu"
+    # url = "http://172.20.10.7"
     while True:
         # if sendCommands[robotId]:
         if True:
