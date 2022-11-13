@@ -19,8 +19,9 @@ CV_LOCALIZE_ROBOTS_FIDUCIALS = True
 # The fiducial marker indexes for the sandbox perimeter and goals. 
 # Ordering is not important.
 CORNER_FIDUCIALS = [1,4,7,10]
-PALLET_FIDUCIALS = [2]
+PALLET_FIDUCIALS = [2, 6]
 ROBOT_FIDUCIALS = [0, 3]
+GOAL_FIDUCIALS = [9,11]
 
 # Which physical robot corresponds to which ficucial
 # Robot 3 uses fiducial 0, Robot 1 uses fiducial 3
@@ -101,7 +102,7 @@ CONTROLS_ROBOT_PID_KIy = 0.0
 CONTROLS_ROBOT_PID_KDy = 0.01
 CONTROLS_ROBOT_PID_KPtheta = 0.8
 CONTROLS_ROBOT_PID_KItheta = 0.0
-CONTROLS_ROBOT_PID_KDtheta = 0.1
+CONTROLS_ROBOT_PID_KDtheta = 0.2
 
 CONTROLS_PICKUP_ROBOT_PID_KPx = 1.5
 CONTROLS_PICKUP_ROBOT_PID_KIx = 0.0

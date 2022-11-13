@@ -43,6 +43,7 @@ class Controller:
             print("Robot Path: ", self.robotPath)
             raise Exception('Error with Robot path')
         self.robotError = (0, 0, 0)
+        self.finishedController = False
         self.errorDiff_robot = (0, 0, 0)
         self.robotErrorLast = (0, 0, 0)
         self.robotErrorSum = (0, 0, 0)
@@ -74,7 +75,7 @@ class Controller:
 
         # Find error in robot coordinates
         self.robotError = self.controller_getErrorRobotCoords(targetPose_global, robotPose_global)
-        print("Robot Error: ", self.robotError)
+        # print("Robot Error: ", self.robotError)
         # Matplotlib live plot of error
         if constants.CONTROLS_DEBUG:
             self.xErrorList.append(self.robotError[xIndex])
@@ -136,22 +137,26 @@ class Controller:
 
         # Return wheel speeds based on FFW + FBK terms
         self.robotCommand = tuple(np.add(feedforward, feedback))
-        print("V, W: ", self.robotCommand)
+        # print("V, W: ", self.robotCommand)
         velLeft, velRight = self.controller_getWheelVelocities()
-        print("Left, Right: ", velLeft, velRight)
+        # print("Left, Right: ", velLeft, velRight)
 
         # Determine when to send electromagnet command
         electromagnet_command = constants.ELECTROMAGNET_DONT_SEND
+
+
         if ((nextPoint[timeIndex] <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and (nextPoint[tagIndex] != 0)):
             electromagnet_command = nextPoint[tagIndex]
             self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL if electromagnet_command == constants.ELECTROMAGNET_ENABLE else constants.CONTROLS_STATE_DRIVING_TO_PALLET
+            if (electromagnet_command == constants.ELECTROMAGNET_DISABLE):
+                self.finishedController = True
         elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_ENABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET)):
             electromagnet_command = constants.ELECTROMAGNET_ENABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
         elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_DISABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL)):
             electromagnet_command = constants.ELECTROMAGNET_DISABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
-
+            self.finishedController = True
         if (constants.CONTROLS_DEBUG and electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
             print("Electromagnet command: ", electromagnet_command)
 

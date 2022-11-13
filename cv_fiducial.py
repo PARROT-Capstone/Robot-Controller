@@ -228,6 +228,18 @@ class CV_Fiducial:
 
         return sandbox_image
 
+    def cv_fiducial_getGoalPositions(self):
+        goalFiducialIDs = constants.GOAL_FIDUCIALS
+        foundGoalFiducialIDs = []
+
+        # Find and pack the found pallets from the possible pallet fiducials
+        for fiducialID in goalFiducialIDs:
+            if fiducialID in self.cv_fiducial_markerDict.keys():
+                pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [self.cv_fiducial_markerDict[fiducialID][6]]
+                foundGoalFiducialIDs.append(pose)
+        
+        return foundGoalFiducialIDs
+
 
     def cv_fiducial_getPalletPositions(self):
         palletFiducialIDs = constants.PALLET_FIDUCIALS

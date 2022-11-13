@@ -19,44 +19,50 @@ computerVision = CV()
 
 # call this when the cameras are setup
 computerVision.cv_InitComputerVision()
-computerVision.cv_GetRobotPositions()
 
-    
-# NOTE Test planning a path from point A to point B
 computerVision.cv_runLocalizer()
 robotPoses, robotfiducialIds = computerVision.cv_GetRobotPositions()
 
-# print robotPoses
-for pose in robotPoses:
-    print(pose)
+# init the planner
+planner.Planner_Init(len(robotPoses))
 
-palletPoses, palletfiducialIds = computerVision.cv_getPalletPositionsOffset() # NOTE right now we are using fiducial ID 2
 map_size = (CV_SANDBOX_WIDTH, CV_SANDBOX_HEIGHT)
 
-# set the goal poses to be palletPoses - 100mm in the x direction
-goalPoses = []
-for pose in palletPoses:
-    goalPoses.append([pose[0] - 300, pose[1], pose[2]])
+while(True):
+        
+    computerVision.cv_runLocalizer()
+    robotPoses, robotfiducialIds = computerVision.cv_GetRobotPositions()
 
-paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[1300, 800, 0]])
+    # print robotPoses
+    for pose in robotPoses:
+        print("Robot Pose: ", pose)
 
-for path in paths:
-    mainHelper.preconditionPath(path)
+    palletPoses = computerVision.cv_GetPalletPositions()
 
-threads = []
-robotNumber = len(paths)
-robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
-import numpy as np
-sendCommands = np.zeros(robotNumber, dtype=bool)
-def Main_RequestsThreading(robotId):
-    fiducialId = robotfiducialIds[robotId]
-    robotHwNumber = constants.ROBOT_HARDWARE_NUMBERS[constants.ROBOT_FIDUCIALS.index(fiducialId)]
-    url = f"http://parrot-robot{robotHwNumber}.wifi.local.cmu.edu"
-    session = requests.Session()
-    session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
-    while True:
-        # if sendCommands[robotId]:
-        if True:
+    # set the goal poses to be palletPoses - 100mm in the x direction
+    goalPoses = computerVision.cv_GetGoalFiducials()
+
+    # print out the goalPoses
+    for pose in goalPoses:
+        print("Goal Pose: ", pose)
+
+    paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, goalPoses)
+
+    for path in paths:
+        mainHelper.preconditionPath(path)
+
+    threads = []
+    robotNumber = len(paths)
+    robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
+    import numpy as np
+    sendCommands = np.zeros(robotNumber, dtype=bool)
+    def Main_RequestsThreading(robotId):
+        fiducialId = robotfiducialIds[robotId]
+        robotHwNumber = constants.ROBOT_HARDWARE_NUMBERS[constants.ROBOT_FIDUCIALS.index(fiducialId)]
+        url = f"http://parrot-robot{robotHwNumber}.wifi.local.cmu.edu"
+        session = requests.Session()
+        session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
+        while True:
             sendCommands[robotId] = False
             velLeftLinear = robotCommands[robotId][0]
             velRightLinear = robotCommands[robotId][1]
@@ -95,30 +101,82 @@ def Main_RequestsThreading(robotId):
                     }
             session.post(url, data=servoJson)
 
-for i in range(robotNumber):
-    thread = threading.Thread(target=Main_RequestsThreading, args=(i,))
-    threads.append(thread)
-    thread.start()
+    for i in range(robotNumber):
+        thread = threading.Thread(target=Main_RequestsThreading, args=(i,))
+        threads.append(thread)
+        thread.start()
 
-# initialize controllers when path planner is done
-controllers = [Controller(i, paths[i]) for i in range(robotNumber)]
+    # initialize controllers when path planner is done
+    controllers = [Controller(i, paths[i]) for i in range(robotNumber)]
+    allControllersDone = True
 
-# control loop
-while True:
-    start = time.time()
-    computerVision.cv_runLocalizer()
-    robotPoses, _ = computerVision.cv_GetRobotPositions()
-    print("CV Framerate: ", 1/(time.time() - start))
-    # print(robotPoses)
-    palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
-    for i in range(robotNumber):#TODO: change later
-        robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
-        robotCommands[i] = robotCommand
-        velLeftLinear, velRightLinear, electromagnet_command = robotCommand
-        print("Controller Framerate: ", 1/(time.time() - start))
-        sendCommands[i] = True
-    # asyncio.run(mainHelper.Main_SendRobotControls(robotCommands))
-    print("PostReq Framerate: ", 1/(time.time() - start))
-    computerVision.cv_visualize(paths, targetPose, velRightLinear, velLeftLinear, ffterm, fbkterm)
-    end = time.time()
-    print("Frame Rate: ", 1 / (end - start))
+    # control loop
+    while True:
+        start = time.time()
+        computerVision.cv_runLocalizer()
+        robotPoses, _ = computerVision.cv_GetRobotPositions()
+        # print("CV Framerate: ", 1/(time.time() - start))
+        palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
+        targetPoses = []
+        for i in range(robotNumber):#TODO: change later
+            robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+            targetPoses.append(targetPose)
+            robotCommands[i] = robotCommand
+            velLeftLinear, velRightLinear, electromagnet_command = robotCommand
+            allControllersDone = allControllersDone and controllers[i].finishedController
+
+        computerVision.cv_visualize(paths, targetPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
+        end = time.time()
+        # print("Frame Rate: ", 1 / (end - start))
+
+        if allControllersDone:
+            print("Finished main loop")
+            time.sleep(0.5)
+            # implement call to backup and rotate
+            
+            computerVision.cv_runLocalizer()
+            robotPoses, _ = computerVision.cv_GetRobotPositions()
+                        
+            backupPaths = []
+            for robotId in range(robotNumber):
+                startPoint = robotPoses[robotId]
+                startPoint.append(0)
+                startPoint.append(0) # initial timestep and tag
+                backupPoint = startPoint.copy()
+                backupPoint[0] = backupPoint[0] - np.cos(backupPoint[2]) * 75
+                backupPoint[1] = backupPoint[1] + np.sin(backupPoint[2]) * 75
+                backupPoint[3] += 2
+                
+                rotatePoint = backupPoint.copy()
+                if rotatePoint[2] >= 0:
+                    rotatePoint[2] = rotatePoint[2] - math.pi
+                else:
+                    rotatePoint[2] = rotatePoint[2] + math.pi
+
+                    
+                rotatePoint[3] += 3
+                
+                endPoint = rotatePoint.copy()
+                distance = 50
+                endPoint[0] = endPoint[0] + distance * math.cos(endPoint[2])
+                endPoint[1] = endPoint[1] - distance * math.sin(endPoint[2])
+                endPoint[3] = endPoint[3] + 2
+                
+                controllers[robotId] = Controller(robotId, [startPoint, backupPoint, rotatePoint, endPoint])
+                
+            # run controller for 7 seconds to rotate
+            startRotate = time.time()
+            while(time.time() - startRotate < 7):
+                computerVision.cv_runLocalizer()
+                robotPoses, _ = computerVision.cv_GetRobotPositions()
+                for i in range(robotNumber):
+                    robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
+                    targetPoses.append(targetPose)
+                    robotCommands[i] = robotCommand
+                    velLeftLinear, velRightLinear, electromagnet_command = robotCommand
+
+                computerVision.cv_visualize(paths, targetPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
+                
+            break
+        #exit and replan all the paths
+        allControllersDone = True

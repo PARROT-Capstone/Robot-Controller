@@ -226,6 +226,13 @@ void run_planner_test()
     visualize_paths(map, paths, pallet_poses);
 }
 
+Planner *planner;
+
+void Planner_Init(int num_robots)
+{
+    planner = new Planner(num_robots);
+}
+
 /**
  * @brief Generates robot paths given a map and a set of pallet and goal poses.
  *
@@ -237,14 +244,19 @@ void run_planner_test()
  */
 std::vector<std::vector<std::vector<double>>> Planner_GeneratePaths(std::vector<int> map_size, std::vector<std::vector<double>> robot_poses, std::vector<std::vector<double>> pallet_poses, std::vector<std::vector<double>> goal_poses)
 {
-    // Create a planner with correct number of robots
-    Planner *planner = new Planner(robot_poses.size());
 
     // Generate a 500mm x 500mm map with pallets at (100, 100, 0)
     std::vector<std::vector<int>> map = generate_map(map_size[0], map_size[1], pallet_poses);
 
     // Set the map
     planner->set_map(map);
+
+    // Print robot poses
+    std::cout << "Robot poses from Planner_GeneratePaths: " << std::endl;
+    for (auto &robot_pose : robot_poses)
+    {
+        std::cout << robot_pose[0] << ", " << robot_pose[1] << ", " << robot_pose[2] << std::endl;
+    }
 
     // Set the robot poses
     planner->set_robot_poses(robot_poses);
@@ -274,6 +286,8 @@ PYBIND11_MODULE(planner, m)
     m.doc() = "pybind11 example plugin"; // optional module docstring
 
     m.def("run_planner_test", &run_planner_test, "A function which prints runs the planner world");
+
+    m.def("Planner_Init", &Planner_Init, "A function which initializes the planner");
 
     m.def("Planner_GeneratePaths", &Planner_GeneratePaths, "A function which takes in map size, robot poses, pallet poses, and goal poses. Returns a vector of paths for each robot.");
 }

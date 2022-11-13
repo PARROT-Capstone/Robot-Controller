@@ -69,9 +69,8 @@ class CV:
         # get this from the cv_fiducial class
         return self.cv_fiducial.sandbox_width_mm, self.cv_fiducial.sandbox_height_mm
 
-    def cv_GetSandboxGoals(self):
-        # get this from the cv_fiducial class
-        pass
+    def cv_GetGoalFiducials(self):
+        return self.cv_fiducial.cv_fiducial_getGoalPositions()
 
     def cv_InitComputerVision(self):
         # Initialize the computer vision
@@ -83,7 +82,7 @@ class CV:
             # generate the robot masks dynamically
             self._cv_GenerateRobotMasks()
     
-    def cv_visualize(self, robotPaths, targetPose, robotRightSpeed, robotLeftSpeed, feedforward, feedback):
+    def cv_visualize(self, robotPaths, targetPoses, robotRightSpeed, robotLeftSpeed, feedforward, feedback):
         # Goals:
         # 1. Place a vector at each robot's position
         # 2. Place a centroid at each pallet's position
@@ -99,7 +98,7 @@ class CV:
         if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
             robotPositions = self.latestRobotPositions
         else:
-            robotPositions = self.cv_fiducial.cv_fiducial_getRobotPositions()
+            robotPositions, _ = self.cv_fiducial.cv_fiducial_getRobotPositions()
 
         # 1. Place a vector at each robot's position
         for robotPose in robotPositions:
@@ -151,10 +150,11 @@ class CV:
                 cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 255, 0), 2)
 
         # 4. Visualize the target pose
-        (target_pos_x, target_pos_y, target_rotation_rad) = targetPose
-        start_point = (int(target_pos_x), int(target_pos_y))
-        end_point = (int(target_pos_x + 15*np.cos(target_rotation_rad)), int(target_pos_y - 15*np.sin(target_rotation_rad)))
-        cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 3)
+        for targetPose in targetPoses:
+            (target_pos_x, target_pos_y, target_rotation_rad) = targetPose
+            start_point = (int(target_pos_x), int(target_pos_y))
+            end_point = (int(target_pos_x + 15*np.cos(target_rotation_rad)), int(target_pos_y - 15*np.sin(target_rotation_rad)))
+            cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 3)
 
 
 

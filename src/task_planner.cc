@@ -27,17 +27,34 @@ std::vector<int> TaskPlanner::assign_pallets_to_robots(std::vector<std::vector<d
     // Task assignment vector
     std::vector<int> task_assignments;
 
+    std::cout << "Dropped off pallets: ";
+    for (int i = 0; i < this->dropped_off_pallets.size(); i++)
+    {
+        std::cout << this->dropped_off_pallets[i] << " ";
+    }
+
     // Loop through each robot and assign a task
     for (int i = 0; i < this->num_robots; i++)
     {
-        if (i < pallet_and_goal_poses.size())
+        bool task_assigned = false;
+        // loop through each pallet and goal
+        for (int j = 0; j < pallet_and_goal_poses.size(); j++)
         {
-            // Assign a task to the robot
-            task_assignments.push_back(i);
+            // make sure the pallet is not already dropped off
+            if (std::find(this->dropped_off_pallets.begin(), this->dropped_off_pallets.end(), j) == this->dropped_off_pallets.end())
+            {
+                // assign the task to the robot
+                task_assignments.push_back(j);
+                // add the pallet to the dropped off pallets vector
+                this->dropped_off_pallets.push_back(j);
+                task_assigned = true;
+                // break out of the loop
+                break;
+            }
         }
-        else
+        // if no task was assigned, push -1
+        if (!task_assigned)
         {
-            // No task to assign
             task_assignments.push_back(-1);
         }
     }

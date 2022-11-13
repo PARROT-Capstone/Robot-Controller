@@ -33,6 +33,9 @@ public:
 
 private:
     int num_robots;
+
+    // vector of dropped off pallets
+    std::vector<int> dropped_off_pallets;
 };
 
 #endif // TASK_PLANNER_HH

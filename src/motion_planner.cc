@@ -148,6 +148,11 @@ std::vector<Node *> MotionPlanner::get_neighbors(Node *curr_node, bool is_pallet
         {
             continue;
         }
+        else if (h <= NO_TURN_THRESH && cost == STRAIGHT_COST)
+        {
+            // slow down the robot if it is within threshold of the goal
+            time = time * PALLET_RUNWAY_SLOWDOWN_FACTOR;
+        }
 
         // Create a new node
         Node *neighbor = new Node(curr_node->x + (int)dx, curr_node->y + (int)dy, theta, curr_node->time + time, g, h, curr_node);
@@ -237,7 +242,7 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
             }
 
             // If the robot is in a 1 second window of the path point, check for collision
-            if (abs(node->time - path_point[3]) <= 1)
+            if (abs(node->time - path_point[3]) <= 1 || path_point[4] == 2)
             {
                 // calculate the x and y bounds of the other robot given the inflation radius
                 int other_robot_x_min = path_point[0] - other_robot_inflation_radius;
@@ -248,7 +253,8 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
                 if (x_min > other_robot_x_max || x_max < other_robot_x_min || y_min > other_robot_y_max || y_max < other_robot_y_min)
                 {
                     continue;
-                } else
+                }
+                else
                 {
                     return true;
                 }
@@ -327,7 +333,7 @@ int MotionPlanner::a_star(bool is_pallet_goal)
             {
                 goal_node = current_node;
                 // artificaly slow down the robot to make it easier to follow the path
-                goal_node->time = current_node->parent->time + (current_node->time - current_node->parent->time) * PALLET_RUNWAY_SLOWDOWN_FACTOR;
+                // goal_node->time = current_node->parent->time + (current_node->time - current_node->parent->time) * PALLET_RUNWAY_SLOWDOWN_FACTOR;
                 break;
             }
 

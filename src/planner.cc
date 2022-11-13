@@ -45,6 +45,9 @@ void Planner::set_map(std::vector<std::vector<int>> map)
 
 void Planner::set_robot_poses(std::vector<std::vector<double>> robot_poses)
 {
+    // clear the previous robot poses
+    this->robot_poses.clear();
+
     // set this->robot_poses to robot_poses divided by 10 to convert from mm to cm (round to nearest int), skip the last element
     for (int i = 0; i < robot_poses.size(); i++)
     {
@@ -61,6 +64,9 @@ void Planner::set_robot_poses(std::vector<std::vector<double>> robot_poses)
 
 void Planner::set_pallet_and_goal_poses(std::vector<std::vector<double>> pallet_and_goal_poses)
 {
+    // clear the previous pallet and goal poses
+    this->pallet_and_goal_poses.clear();
+
     // Set this->pallet_and_goal_poses to pallet_and_goal_poses divided by 10 to convert from mm to cm (round to nearest int), don't convert the thetas
     for (int i = 0; i < pallet_and_goal_poses.size(); i++)
     {
@@ -77,6 +83,17 @@ void Planner::set_pallet_and_goal_poses(std::vector<std::vector<double>> pallet_
             }
         }
         this->pallet_and_goal_poses.push_back(pallet_and_goal_pose);
+    }
+
+    // print pallet_and_goal_poses
+    std::cout << "pallet_and_goal_poses: " << std::endl;
+    for (int i = 0; i < this->pallet_and_goal_poses.size(); i++)
+    {
+        for (int j = 0; j < this->pallet_and_goal_poses[i].size(); j++)
+        {
+            std::cout << this->pallet_and_goal_poses[i][j] << " ";
+        }
+        std::cout << std::endl;
     }
 }
 
