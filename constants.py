@@ -22,7 +22,7 @@ CORNER_FIDUCIALS = [1,4,7,10]
 PALLET_FIDUCIALS = [2]
 ROBOT_FIDUCIALS = [0, 3]
 
-WEBCAM_ID = 1
+WEBCAM_ID = 0
 
 path = os.getcwd()
 CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"

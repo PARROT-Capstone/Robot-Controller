@@ -97,6 +97,9 @@ def preconditionPath(path):
     pop_count = 0
     pop_threshold = 3
     while i < len(path) - 1:
+        if path[i+1][4] == 1:
+            path[i][4] = 1
+        
         if path[i][2] == path[i+1][2] and pop_count < pop_threshold and path[i][4] == 0: #2 is theta index, hardcoded for now :)
             path.pop(i)
             pop_count += 1
