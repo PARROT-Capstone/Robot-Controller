@@ -220,38 +220,41 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
         }
     }
 
-    // check if the robot is in
+    // Check if the robot is in dynamic collision with other robots.
+    for (auto &robot_path : this->paths)
+    {
+        // adjust other robot inflation radius based on if it has a pallet
+        int other_robot_inflation_radius = ROBOT_FOOTPRINT_RADIUS;
 
-    // // Check if the robot is in dynamic collision with other robots.
-    // for (auto &robot_path : this->paths)
-    // {
-    //     // For each point in the robot path
-    //     for (auto &path_point : robot_path)
-    //     {
-    //         // If the robot is in a 1 second window of the path point, check for collision
-    //         if (abs(node->time - path_point[3]) <= 1)
-    //         {
-    //             // Create a footprint for the other robot at the path point, inflated by 2
-    //             std::vector<std::vector<int>> other_robot_footprint;
-    //             for (int x = path_point[0] - 2; x <= path_point[0] + 2; x++)
-    //             {
-    //                 for (int y = path_point[1] - 2; y <= path_point[1] + 2; y++)
-    //                 {
-    //                     other_robot_footprint.push_back({x, y});
-    //                 }
-    //             }
+        // For each point in the robot path
+        for (auto &path_point : robot_path)
+        {
 
-    //             // Check if the two footprints overlap
-    //             for (auto &p : robot_footprint)
-    //             {
-    //                 if (std::find(other_robot_footprint.begin(), other_robot_footprint.end(), p) != other_robot_footprint.end())
-    //                 {
-    //                     return true;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+            // if the robot is at its pickup location, then it has a pallet and we need to inflate its footprint
+            if (path_point[4] == 1)
+            {
+                other_robot_inflation_radius = ROBOT_FOOTPRINT_RADIUS_WITH_PALLET;
+            }
+
+            // If the robot is in a 1 second window of the path point, check for collision
+            if (abs(node->time - path_point[3]) <= 1)
+            {
+                // calculate the x and y bounds of the other robot given the inflation radius
+                int other_robot_x_min = path_point[0] - other_robot_inflation_radius;
+                int other_robot_x_max = path_point[0] + other_robot_inflation_radius;
+                int other_robot_y_min = path_point[1] - other_robot_inflation_radius;
+                int other_robot_y_max = path_point[1] + other_robot_inflation_radius;
+
+                if (x_min > other_robot_x_max || x_max < other_robot_x_min || y_min > other_robot_y_max || y_max < other_robot_y_min)
+                {
+                    continue;
+                } else
+                {
+                    return true;
+                }
+            }
+        }
+    }
 
     // If no collision, return false
     return false;
@@ -265,7 +268,7 @@ int MotionPlanner::a_star(bool is_pallet_goal)
     // set the start based on the pallet_goal or dropoff_goal
     std::vector<double> start = is_pallet_goal ? this->start : this->path.back();
     // set the relative start time based on the pallet_goal or dropoff_goal
-    double start_time = is_pallet_goal ? 0 : (this->path.back()[3] + 5);
+    double start_time = is_pallet_goal ? 0 : (this->path.back()[3] + PALLET_WAIT_TIME);
 
     // Create the open list of Nodes
     std::priority_queue<Node *, std::vector<Node *>, OpenListNodeComparator> open_list = std::priority_queue<Node *, std::vector<Node *>, OpenListNodeComparator>();
@@ -323,6 +326,8 @@ int MotionPlanner::a_star(bool is_pallet_goal)
             if (abs(current_node->theta - goal_node->theta) <= M_PI / 4)
             {
                 goal_node = current_node;
+                // artificaly slow down the robot to make it easier to follow the path
+                goal_node->time = current_node->parent->time + (current_node->time - current_node->parent->time) * PALLET_RUNWAY_SLOWDOWN_FACTOR;
                 break;
             }
 

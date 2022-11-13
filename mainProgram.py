@@ -24,13 +24,13 @@ computerVision.cv_GetRobotPositions()
     
 # NOTE Test planning a path from point A to point B
 computerVision.cv_runLocalizer()
-robotPoses = computerVision.cv_GetRobotPositions()
+robotPoses, robotfiducialIds = computerVision.cv_GetRobotPositions()
 
 # print robotPoses
 for pose in robotPoses:
     print(pose)
 
-palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
+palletPoses, palletfiducialIds = computerVision.cv_getPalletPositionsOffset() # NOTE right now we are using fiducial ID 2
 map_size = (CV_SANDBOX_WIDTH, CV_SANDBOX_HEIGHT)
 
 # set the goal poses to be palletPoses - 100mm in the x direction
@@ -38,50 +38,22 @@ goalPoses = []
 for pose in palletPoses:
     goalPoses.append([pose[0] - 300, pose[1], pose[2]])
 
-# simple path of robot going straight and then turning and then going straight again
-point0 = robotPoses[0].copy()
-point0.append(0)
-point0.append(0)
-
-point1 = point0.copy()
-point1[0] = point1[0] + 500
-point1[3] = 10
-
-point2 = point1.copy()
-point2[2] -= math.pi/2
-point2[3] += 5
-
-
-point3 = point2.copy()
-point3[1] = point3[1] + 300
-point3[3] += 10
-
-
-paths= [[point0, point1, point2, point3]]
-
 paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, [[1300, 800, 0]])
+
 for path in paths:
     mainHelper.preconditionPath(path)
 
-
-# print the paths for each robot
-for i in range(len(paths)):
-    print("Robot", i, "path:")
-    for j in range(len(paths[i])):
-        print(paths[i][j])
-
 threads = []
 robotNumber = len(paths)
-print("Robot number: ", robotNumber)
 robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
 import numpy as np
 sendCommands = np.zeros(robotNumber, dtype=bool)
 def Main_RequestsThreading(robotId):
+    fiducialId = robotfiducialIds[robotId]
+    robotHwNumber = constants.ROBOT_HARDWARE_NUMBERS[constants.ROBOT_FIDUCIALS.index(fiducialId)]
+    url = f"http://parrot-robot{robotHwNumber}.wifi.local.cmu.edu"
     session = requests.Session()
     session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
-    # TODO: change robot url
-    url = "http://parrot-robot1.wifi.local.cmu.edu"
-    # url = "http://172.20.10.7"
     while True:
         # if sendCommands[robotId]:
         if True:
@@ -135,7 +107,7 @@ controllers = [Controller(i, paths[i]) for i in range(robotNumber)]
 while True:
     start = time.time()
     computerVision.cv_runLocalizer()
-    robotPoses = computerVision.cv_GetRobotPositions()
+    robotPoses, _ = computerVision.cv_GetRobotPositions()
     print("CV Framerate: ", 1/(time.time() - start))
     # print(robotPoses)
     palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2

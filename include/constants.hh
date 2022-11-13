@@ -31,4 +31,7 @@ const double IN_PLACE_TURN_COST = 0.5;
 
 const double NO_TURN_THRESH = 4.0;
 
+const double PALLET_WAIT_TIME = 3.0;
+const double PALLET_RUNWAY_SLOWDOWN_FACTOR = 3.0;
+
 #endif // CONSTANTS_HH

@@ -56,12 +56,11 @@ class Controller:
             self.fig = plt.figure()
 
     def controller_getRobotVelocities(self, robotPose_global):
+        global Kpx, Kdx, Kpy, Kdy, Kpth, Ki, Kd
         # Get robot time
         currentTime = time.time()
         relativeTime = currentTime - self.startTime
         robotPose_global[yIndex] *= -1
-        
-        # print("Robot Pose: ", robotPose_global)
 
         # Get past and next point
         pastPoint, nextPoint = self.controller_getPastNextPoints(relativeTime)
@@ -109,6 +108,26 @@ class Controller:
         feedforward = self.controller_getFeedforwardTerm(relativeTime, xFunc, yFunc, thetaFunc, dxdt, dydt)
 
         # Find Feedback term
+        if (nextPoint[tagIndex] == constants.ELECTROMAGNET_ENABLE):
+            Kpx = constants.CONTROLS_PICKUP_ROBOT_PID_KPx
+            Kdx = constants.CONTROLS_PICKUP_ROBOT_PID_KDx
+
+            Kpy = constants.CONTROLS_PICKUP_ROBOT_PID_KPy
+            Kdy = constants.CONTROLS_PICKUP_ROBOT_PID_KDy
+
+            Kpth = constants.CONTROLS_PICKUP_ROBOT_PID_KPtheta
+            Ki = constants.CONTROLS_PICKUP_ROBOT_PID_KItheta
+            Kd = constants.CONTROLS_PICKUP_ROBOT_PID_KDtheta
+        else:
+            Kpx = constants.CONTROLS_ROBOT_PID_KPx
+            Kdx = constants.CONTROLS_ROBOT_PID_KDx
+
+            Kpy = constants.CONTROLS_ROBOT_PID_KPy
+            Kdy = constants.CONTROLS_ROBOT_PID_KDy
+
+            Kpth = constants.CONTROLS_ROBOT_PID_KPtheta
+            Ki = constants.CONTROLS_ROBOT_PID_KItheta
+            Kd = constants.CONTROLS_ROBOT_PID_KDtheta
         feedback = self.controller_getFeedbackTerm()
 
         # Update error last
@@ -132,7 +151,6 @@ class Controller:
         elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_DISABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL)):
             electromagnet_command = constants.ELECTROMAGNET_DISABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
-
 
         if (constants.CONTROLS_DEBUG and electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
             print("Electromagnet command: ", electromagnet_command)

@@ -168,6 +168,19 @@ class CV:
         
         cv.imshow("Visualizer", self.visualizerField)
         cv.waitKey(1)
+    def cv_getPalletPositionsOffset(self):
+        # Generates a list of pallet positions with the offset applied
+        palletPositions = self.cv_fiducial.cv_fiducial_getPalletPositions()
+        palletPositionsModified = []
+        for palletPose in palletPositions:
+            (pallet_pos_x, pallet_pos_y, pallet_rotation_rad) = palletPose
+            pallet_pos_x += np.cos(pallet_rotation_rad) * constants.CV_PALLET_OFFSET
+            pallet_pos_y -= np.sin(pallet_rotation_rad) * constants.CV_PALLET_OFFSET
+            palletPose = (pallet_pos_x, pallet_pos_y, pallet_rotation_rad)
+            palletPositionsModified.append(palletPose)
+        
+        return palletPositionsModified
+        
 
 ##############################################
 #            Private Functions

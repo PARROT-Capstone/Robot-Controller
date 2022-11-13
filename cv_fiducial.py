@@ -243,11 +243,13 @@ class CV_Fiducial:
 
     def cv_fiducial_getRobotPositions(self):
         robotFiducialIDs = constants.ROBOT_FIDUCIALS
-        foundRobotFiducialIDs = []
+        foundRobotFiducialPoses = []
+        foundRobotFiducialIds = []
 
         for fiducialID in robotFiducialIDs:
             if fiducialID in self.cv_fiducial_markerDict.keys():
                 pose = list(self.cv_fiducial_markerDict[fiducialID][0:2]) + [self.cv_fiducial_markerDict[fiducialID][6]]
-                foundRobotFiducialIDs.append(pose)
+                foundRobotFiducialPoses.append(pose)
+                foundRobotFiducialIds.append(fiducialID)
 
-        return foundRobotFiducialIDs  
+        return foundRobotFiducialPoses, foundRobotFiducialIds
