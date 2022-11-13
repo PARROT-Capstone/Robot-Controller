@@ -8,9 +8,6 @@ from controller_main import Controller
 import threading
 import time as time
 import math
-import aiohttp
-import asyncio
-import pickle
 import os
 
 # cd build and make the c++ code
