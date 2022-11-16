@@ -161,7 +161,7 @@ while(True):
                 backupPoint = startPoint.copy()
                 backupPoint[0] = backupPoint[0] - np.cos(backupPoint[2]) * 75
                 backupPoint[1] = backupPoint[1] + np.sin(backupPoint[2]) * 75
-                backupPoint[3] += 2
+                backupPoint[3] += 7.5
                 
                 rotatePoint = backupPoint.copy()
                 if rotatePoint[2] >= 0:
@@ -170,19 +170,21 @@ while(True):
                     rotatePoint[2] = rotatePoint[2] + math.pi
 
                     
-                rotatePoint[3] += 3
+                rotatePoint[3] += 6
                 
                 endPoint = rotatePoint.copy()
                 distance = 50
                 endPoint[0] = endPoint[0] + distance * math.cos(endPoint[2])
                 endPoint[1] = endPoint[1] - distance * math.sin(endPoint[2])
-                endPoint[3] = endPoint[3] + 2
-                
-                controllers[robotId] = Controller(robotId, [startPoint, backupPoint, rotatePoint, endPoint])
+                endPoint[3] = endPoint[3] + 5
+
+                path = [startPoint, backupPoint, rotatePoint, endPoint]
+                pathDuration = endPoint[3]
+                controllers[robotId] = Controller(robotId, path)
                 
             # run controller for 7 seconds to rotate
             startRotate = time.time()
-            while(time.time() - startRotate < 7):
+            while(time.time() - startRotate < pathDuration + 1): # one extra second to close the error
                 computerVision.cv_runLocalizer()
                 robotPoses, _ = computerVision.cv_GetRobotPositions()
                 targetBackupPoses = []
