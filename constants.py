@@ -37,8 +37,8 @@ CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
 FIDUCIAL_WIDTH_MM = 30 # TODO: Just a guess
 
 CV_SANDBOX_IMAGE_BUFFER_PERCENT = 0.1 # How much extra to scale the image by when cropping the sandbox
-CV_SANDBOX_HEIGHT = 1000 # mm
-CV_SANDBOX_WIDTH = 1500 # mm
+CV_SANDBOX_HEIGHT = 1500 # mm
+CV_SANDBOX_WIDTH = 2000 # mm
 
 CAMERA_MATRIX = np.array([[2.03722817e+03, 0.00000000e+00, 1.50860597e+03], \
     [0.00000000e+00, 2.03842706e+03, 2.00969117e+03], \

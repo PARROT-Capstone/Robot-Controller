@@ -213,14 +213,30 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
 
                 // if we have reached this point, we know we are checking for a collision between the robot and it's assigned pallet as it is trying to pick it up
                 // only check for self pallet collisions before the robot has picked up the pallet
-                // if (is_pallet_goal)
-                // {
-                //     // if the x and y are not within the front of the robot, then the robot is in collision
-                //     if (x < robot_front_x_min || x > robot_front_x_max || y < robot_front_y_min || y > robot_front_y_max)
-                //     {
-                //         return true;
-                //     }
-                // }
+                if (is_pallet_goal)
+                {
+                    // if the robot doesn't have the correct approach angle, then it is in collision
+                    if (abs(node->theta - this->pallet_goal[2]) > GOAL_THETA_TOLERANCE)
+                    {
+                        return true;
+                    }
+
+                    // // if the x and y are not within the front of the robot, then the robot is in collision
+                    // if (x < robot_front_x_min || x > robot_front_x_max || y < robot_front_y_min || y > robot_front_y_max)
+                    // {
+                    //     // print the robot is in collision
+                    //     std::cout << "Robot is in collision with it's pallet" << std::endl;
+                    //     // print the robot bounds
+                    //     std::cout << "Robot Bounds: " << x_min << ", " << x_max << ", " << y_min << ", " << y_max << std::endl;
+                    //     // print the pallet bounds
+                    //     std::cout << "Pallet Bounds: " << pallet_x_min << ", " << pallet_x_max << ", " << pallet_y_min << ", " << pallet_y_max << std::endl;
+                    //     // print the robot front bounds
+                    //     std::cout << "Robot Front Bounds: " << robot_front_x_min << ", " << robot_front_x_max << ", " << robot_front_y_min << ", " << robot_front_y_max << std::endl;
+                    //     // print the robot offset
+                    //     std::cout << "Robot Offset: " << robot_offset_x << ", " << robot_offset_y << std::endl;
+                    //     return true;
+                    // }
+                }
             }
         }
     }
@@ -329,7 +345,7 @@ int MotionPlanner::a_star(bool is_pallet_goal)
         if (current_node->x == goal_node->x && current_node->y == goal_node->y)
         {
             // check if the goal angle is within pi/4 radians of the current node angle
-            if (abs(current_node->theta - goal_node->theta) <= M_PI / 4)
+            if (abs(current_node->theta - goal_node->theta) <= GOAL_THETA_TOLERANCE)
             {
                 goal_node = current_node;
                 // artificaly slow down the robot to make it easier to follow the path

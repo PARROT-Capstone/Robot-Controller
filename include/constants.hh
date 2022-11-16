@@ -9,6 +9,8 @@
  *
  */
 
+#include <cmath>
+
 #ifndef CONSTANTS_HH
 #define CONSTANTS_HH
 
@@ -33,5 +35,7 @@ const double NO_TURN_THRESH = 4.0;
 
 const double PALLET_WAIT_TIME = 3.0;
 const double PALLET_RUNWAY_SLOWDOWN_FACTOR = 3.0;
+
+const double GOAL_THETA_TOLERANCE = M_PI / 8.0;
 
 #endif // CONSTANTS_HH
