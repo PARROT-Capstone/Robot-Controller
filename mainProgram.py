@@ -169,13 +169,14 @@ while(True):
             while(time.time() - startRotate < 7):
                 computerVision.cv_runLocalizer()
                 robotPoses, _ = computerVision.cv_GetRobotPositions()
+                targetBackupPoses = []
                 for i in range(robotNumber):
                     robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
-                    targetPoses.append(targetPose)
+                    targetBackupPoses.append(targetPose)
                     robotCommands[i] = robotCommand
                     velLeftLinear, velRightLinear, electromagnet_command = robotCommand
 
-                computerVision.cv_visualize(paths, targetPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
+                computerVision.cv_visualize(paths, targetBackupPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
                 
             break
         #exit and replan all the paths
