@@ -1,6 +1,7 @@
 from posixpath import pathsep
 from constants import CV_SANDBOX_HEIGHT, CV_SANDBOX_WIDTH
 import constants
+import numpy as np
 import requests
 import mainHelper
 from cv_main import CV
@@ -47,6 +48,22 @@ while(True):
         print("Goal Pose: ", pose)
 
     paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, goalPoses)
+    # firstPoint = robotPoses[0].copy()
+    # firstPoint.append(0)
+    # firstPoint.append(0)
+    # secondPoint = firstPoint.copy()
+    # secondPoint[0] += 200
+    # secondPoint[1] += 200
+    # secondPoint[2] -= math.pi/2
+    # secondPoint[3] += 15
+    # thirdPoint = secondPoint.copy()
+    # thirdPoint[2] += math.pi/2
+    # thirdPoint[3] += 3 # 30 degrees a second
+    # fourthPoint = thirdPoint.copy()
+    # fourthPoint[0] += 200
+    # fourthPoint[3] += 10 # correct speed
+
+    # paths = [np.array([firstPoint, secondPoint, thirdPoint, fourthPoint])]
 
     for path in paths:
         mainHelper.preconditionPath(path)
@@ -54,7 +71,6 @@ while(True):
     threads = []
     robotNumber = len(paths)
     robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
-    import numpy as np
     sendCommands = np.zeros(robotNumber, dtype=bool)
     def Main_RequestsThreading(robotId):
         fiducialId = robotfiducialIds[robotId]
