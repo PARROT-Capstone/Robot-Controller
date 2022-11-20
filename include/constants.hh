@@ -22,8 +22,8 @@ const int ROBOT_FOOTPRINT_RADIUS_WITH_PALLET = 8;
 const int PALLET_FOOTPRINT_RADIUS = 2;
 const int ROBOT_OFFSET = 1;
 
-const double STRAIGHT_TIME_STEP = 0.9; // 1.1111 cm/s
-const double TURN_TIME_STEP = 7;       // 2.5pi cm / 5 seconds = 1.57cm/s
+const double STRAIGHT_TIME_STEP = 0.8; // 1.1111 cm/s
+const double TURN_TIME_STEP = 8;       // 2.5pi cm / 5 seconds = 1.57cm/s
 
 const bool ALLOW_IN_PLACE_TURN = false;
 
