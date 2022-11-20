@@ -160,31 +160,18 @@ while(True):
             backupPaths = []
             for robotId in range(robotNumber):
                 startPoint = robotPoses[robotId]
+                startPoint[2] += math.pi
+                startPoint[2] = math.atan2(math.sin(startPoint[2]), math.cos(startPoint[2]))
                 startPoint.append(0)
                 startPoint.append(0) # initial timestep and tag
                 backupPoint = startPoint.copy()
-                backupPoint[0] = backupPoint[0] - np.cos(backupPoint[2]) * 75
-                backupPoint[1] = backupPoint[1] + np.sin(backupPoint[2]) * 75
+                backupPoint[0] = backupPoint[0] + np.cos(backupPoint[2]) * 75
+                backupPoint[1] = backupPoint[1] - np.sin(backupPoint[2]) * 75
                 backupPoint[3] += 7.5
-                
-                rotatePoint = backupPoint.copy()
-                if rotatePoint[2] >= 0:
-                    rotatePoint[2] = rotatePoint[2] - math.pi
-                else:
-                    rotatePoint[2] = rotatePoint[2] + math.pi
 
-                    
-                rotatePoint[3] += 6
-                
-                endPoint = rotatePoint.copy()
-                distance = 50
-                endPoint[0] = endPoint[0] + distance * math.cos(endPoint[2])
-                endPoint[1] = endPoint[1] - distance * math.sin(endPoint[2])
-                endPoint[3] = endPoint[3] + 5
-
-                path = [startPoint, backupPoint, rotatePoint, endPoint]
-                pathDuration = endPoint[3]
-                controllers[robotId] = Controller(robotId, path)
+                path = [startPoint, backupPoint]
+                pathDuration = backupPoint[3]
+                controllers[robotId] = Controller(robotId, path, False)
                 
             # run controller for 7 seconds to rotate
             startRotate = time.time()

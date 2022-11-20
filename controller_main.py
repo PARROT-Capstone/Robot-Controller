@@ -31,10 +31,8 @@ dt = 1e-6
 
 # Based on Mobile Robot Programming Lab and https://www.researchgate.net/profile/Muhammad-Asif-62/publication/266798448_20140930101805712/links/543cc55d0cf24ef33b7639cb/20140930101805712.pdf
 
-# TODO: Electromagnet Commands
-
 class Controller:
-    def __init__(self, robotId, robotPath):
+    def __init__(self, robotId, robotPath, forward=True):
         self.startTime = time.time()
         self.robotId = robotId
         # path is (x, y, theta, relative_time)
@@ -42,6 +40,7 @@ class Controller:
         if (self.robotPath is None or len(self.robotPath) < 2):
             print("Robot Path: ", self.robotPath)
             raise Exception('Error with Robot path')
+        self.forward = forward
         self.robotError = (0, 0, 0)
         self.finishedController = False
         self.errorDiff_robot = (0, 0, 0)
@@ -65,6 +64,14 @@ class Controller:
 
         # Get past and next point
         pastPoint, nextPoint = self.controller_getPastNextPoints(relativeTime)
+
+        # Check if going backwards - only first point should go backwards
+        if (self.forward == False and self.robotPath[0][timeIndex] == pastPoint[timeIndex]):
+            # flip y positions of robot, past and next points
+            robotPose_global[yIndex] *= -1
+            pastPoint[yIndex] *= -1
+            nextPoint[yIndex] *= -1
+
 
         # Interpolate between past and next points
         xFunc, yFunc, thetaFunc = self.controller_getInterpolation(pastPoint, nextPoint)
@@ -98,7 +105,7 @@ class Controller:
             plt.pause(0.0001)
 
 
-        targetPose_global = (targetPose_global[xIndex], -1*targetPose_global[yIndex], targetPose_global[thetaIndex])
+        targetPose_global = (targetPose_global[xIndex], -1*abs(targetPose_global[yIndex]), targetPose_global[thetaIndex])
 
 
         # Find error sum and error difference
