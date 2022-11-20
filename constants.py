@@ -28,7 +28,9 @@ GOAL_FIDUCIALS = [9,11]
 # Uses same index as ROBOT_FIDUCIALS
 ROBOT_HARDWARE_NUMBERS = [3, 1]
 
-WEBCAM_ID = 0
+# WEBCAM_ID = 0 # Saral
+WEBCAM_ID = 1 # Prithu
+
 
 path = os.getcwd()
 CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
