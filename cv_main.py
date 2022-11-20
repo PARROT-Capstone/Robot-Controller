@@ -82,7 +82,7 @@ class CV:
             # generate the robot masks dynamically
             self._cv_GenerateRobotMasks()
     
-    def cv_visualize(self, robotPaths, targetPoses, robotRightSpeed, robotLeftSpeed, feedforward, feedback):
+    def cv_visualize(self, robotPaths, targetPoses, robotRightSpeeds, robotLeftSpeeds, feedforward, feedback):
         # Goals:
         # 1. Place a vector at each robot's position
         # 2. Place a centroid at each pallet's position
@@ -101,7 +101,8 @@ class CV:
             robotPositions, _ = self.cv_fiducial.cv_fiducial_getRobotPositions()
 
         # 1. Place a vector at each robot's position
-        for robotPose in robotPositions:
+        for i in range(len(robotPositions)):
+            robotPose = robotPositions[i]
             (robot_pos_x, robot_pos_y, robot_rotation_rad) = robotPose
             start_point = (int(robot_pos_x), int(robot_pos_y))
             end_point = (int(robot_pos_x + 100*np.cos(robot_rotation_rad)), int(robot_pos_y - 100*np.sin(robot_rotation_rad)))
@@ -122,6 +123,8 @@ class CV:
             # cv.arrowedLine(self.visualizerField, rightArrowStart, rightArrowEnd, (0, 0, 100), 2)
 
             # 6. Visualize the robot direction vector
+            robotRightSpeed = robotRightSpeeds[i]
+            robotLeftSpeed = robotLeftSpeeds[i]
             magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 10
             angle = ((robotRightSpeed - robotLeftSpeed) / constants.maxRobotSpeed) * np.pi # scale to pi radians
             angle += robot_rotation_rad

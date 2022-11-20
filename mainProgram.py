@@ -134,14 +134,18 @@ while(True):
         # print("CV Framerate: ", 1/(time.time() - start))
         palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
         targetPoses = []
+        velRightLinears = []
+        velLeftLinears = []
         for i in range(robotNumber):#TODO: change later
             robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
             targetPoses.append(targetPose)
             robotCommands[i] = robotCommand
             velLeftLinear, velRightLinear, electromagnet_command = robotCommand
+            velRightLinears.append(velRightLinear)
+            velLeftLinears.append(velLeftLinear)
             allControllersDone = allControllersDone and controllers[i].finishedController
 
-        computerVision.cv_visualize(paths, targetPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
+        computerVision.cv_visualize(paths, targetPoses, velRightLinears, velLeftLinears, ffterm, fbkterm)
         end = time.time()
         # print("Frame Rate: ", 1 / (end - start))
 
@@ -188,13 +192,17 @@ while(True):
                 computerVision.cv_runLocalizer()
                 robotPoses, _ = computerVision.cv_GetRobotPositions()
                 targetBackupPoses = []
+                velRightLinears = []
+                velLeftLinears = []
                 for i in range(robotNumber):
                     robotCommand, targetPose, ffterm, fbkterm = controllers[i].controller_getRobotVelocities(robotPoses[i])
                     targetBackupPoses.append(targetPose)
                     robotCommands[i] = robotCommand
                     velLeftLinear, velRightLinear, electromagnet_command = robotCommand
+                    velRightLinears.append(velRightLinear)
+                    velLeftLinears.append(velLeftLinear)
 
-                computerVision.cv_visualize(paths, targetBackupPoses, velRightLinear, velLeftLinear, ffterm, fbkterm)
+                computerVision.cv_visualize(paths, targetBackupPoses, velRightLinears, velLeftLinears, ffterm, fbkterm)
                 
             break
         #exit and replan all the paths
