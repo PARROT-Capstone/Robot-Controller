@@ -39,7 +39,7 @@ class Controller:
         self.robotPath = robotPath
         if (self.robotPath is None or len(self.robotPath) < 2):
             print("Robot Path: ", self.robotPath)
-            raise Exception('Error with Robot path')
+            self.robotPath = None
         self.forward = forward
         self.robotError = (0, 0, 0)
         self.finishedController = False
@@ -57,6 +57,9 @@ class Controller:
 
     def controller_getRobotVelocities(self, robotPose_global):
         global Kpx, Kdx, Kpy, Kdy, Kpth, Ki, Kd
+        if self.robotPath is None:
+            self.finishedController = True
+            return ((0, 0, constants.ELECTROMAGNET_DONT_SEND), robotPose_global, (0, 0), (0, 0))
         # Get robot time
         currentTime = time.time()
         relativeTime = currentTime - self.startTime
@@ -65,12 +68,14 @@ class Controller:
         # Get past and next point
         pastPoint, nextPoint = self.controller_getPastNextPoints(relativeTime)
 
-        # Check if going backwards - only first point should go backwards
-        if (self.forward == False and self.robotPath[0][timeIndex] == pastPoint[timeIndex]):
-            # flip y positions of robot, past and next points
-            robotPose_global[yIndex] *= -1
-            pastPoint[yIndex] *= -1
-            nextPoint[yIndex] *= -1
+        # # Check if going backwards - only first point should go backwards
+        if (self.forward == False):
+        #     # flip y positions of robot, past and next points
+        #     # robotPose_global[yIndex] *= -1
+            robotPose_global[thetaIndex] += math.pi
+            robotPose_global[thetaIndex] = np.arctan2(math.sin(robotPose_global[thetaIndex]), math.cos(robotPose_global[thetaIndex]))
+        #     # pastPoint[yIndex] *= -1
+        #     # nextPoint[yIndex] *= -1
 
 
         # Interpolate between past and next points
@@ -105,7 +110,7 @@ class Controller:
             plt.pause(0.0001)
 
 
-        targetPose_global = (targetPose_global[xIndex], -1*abs(targetPose_global[yIndex]), targetPose_global[thetaIndex])
+        targetPose_global = (targetPose_global[xIndex], abs(targetPose_global[yIndex]), targetPose_global[thetaIndex])
 
 
         # Find error sum and error difference
@@ -311,12 +316,21 @@ class Controller:
             else:
                 curvature = (dxdt * d2ydt2 - dydt * d2xdt2) / (linearVelocity ** 3)
             angularVelocity = linearVelocity * curvature
+            if (self.forward == False):
+                linearVelocity = -linearVelocity
+                angularVelocity = 0
         return (linearVelocity, angularVelocity)
 
     # Returns (linear velocity, angular velocity)
     def controller_getFeedbackTerm(self):
+        global Kpy
         errorV = self.robotError[xIndex] * Kpx + self.errorDiff_robot[xIndex] * Kdx
+        if (self.forward == False):
+            Kpy = 0.01
         errorOmega = self.robotError[yIndex] * Kpy + self.errorDiff_robot[yIndex] * Kdy + self.robotError[thetaIndex] * Kpth
+        if (self.forward == False):
+            errorOmega = errorOmega
+            errorV = -errorV
         # print("ErrorV: " + str(errorV) + " ErrorOmega: " + str(errorOmega))
         return (errorV, errorOmega)
 
