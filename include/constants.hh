@@ -38,4 +38,6 @@ const double PALLET_RUNWAY_SLOWDOWN_FACTOR = 3.0;
 
 const double GOAL_THETA_TOLERANCE = M_PI / 8.0;
 
+const bool USE_HEURISTIC = true;
+
 #endif // CONSTANTS_HH
