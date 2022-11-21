@@ -194,6 +194,10 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
     // ensure the robot is within the map bounds
     if (x_min < 0 || x_max >= this->map.size() || y_min < 0 || y_max >= this->map[0].size())
     {
+        if (DEBUG)
+        {
+            std::cout << "Robot is out of bounds" << std::endl;
+        }
         return true;
     }
 
@@ -272,6 +276,10 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
                 }
                 else
                 {
+                    if (DEBUG)
+                    {
+                        std::cout << "Robot is in dynamic collision" << std::endl;
+                    }
                     return true;
                 }
             }
