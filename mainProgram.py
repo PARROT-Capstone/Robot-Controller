@@ -39,6 +39,10 @@ while(True):
         print("Robot Pose: ", pose)
 
     palletPoses = computerVision.cv_GetPalletPositions()
+    
+    # print out pallet poses
+    for pose in palletPoses:
+        print("Pallet Pose: ", pose)
 
     # set the goal poses to be palletPoses - 100mm in the x direction
     goalPoses = computerVision.cv_GetGoalFiducials()
@@ -113,6 +117,9 @@ while(True):
                 rightPWM -= offset
             elif velRightAng < 0:
                 rightPWM += offset
+                
+            leftPWM = min(max(leftPWM, 90-25), 90+25)
+            rightPWM = min(max(rightPWM, 90-25), 90+25)
 
             
             if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
@@ -135,8 +142,11 @@ while(True):
     controllers = [Controller(i, paths[i]) for i in range(robotNumber)]
     allControllersDone = True
 
+ 
+        
     # control loop
-    while True:
+    while True:  
+        
         start = time.time()
         computerVision.cv_runLocalizer()
         robotPoses, _ = computerVision.cv_GetRobotPositions()
@@ -174,9 +184,9 @@ while(True):
                 startPoint.append(0)
                 startPoint.append(0) # initial timestep and tag
                 backupPoint = startPoint.copy()
-                backupPoint[0] = backupPoint[0] + np.cos(backupPoint[2]) * 75
-                backupPoint[1] = backupPoint[1] - np.sin(backupPoint[2]) * 75
-                backupPoint[3] += 7.5
+                backupPoint[0] = backupPoint[0] + np.cos(backupPoint[2]) * 100
+                backupPoint[1] = backupPoint[1] - np.sin(backupPoint[2]) * 100
+                backupPoint[3] += 10
 
                 path = [startPoint, backupPoint]
                 pathDuration = backupPoint[3]

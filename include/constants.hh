@@ -18,7 +18,7 @@
 const double H_VALUE_WEIGHT = 1;
 const double G_VALUE_WEIGHT = 1;
 const int ROBOT_FOOTPRINT_RADIUS = 6;
-const int ROBOT_FOOTPRINT_RADIUS_WITH_PALLET = 8;
+const int ROBOT_FOOTPRINT_RADIUS_WITH_PALLET = 7;
 const int PALLET_FOOTPRINT_RADIUS = 2;
 const int ROBOT_OFFSET = 1;
 
@@ -37,5 +37,9 @@ const double PALLET_WAIT_TIME = 3.0;
 const double PALLET_RUNWAY_SLOWDOWN_FACTOR = 3.0;
 
 const double GOAL_THETA_TOLERANCE = M_PI / 8.0;
+
+const bool USE_HEURISTIC = true;
+
+const bool DEBUG = false;
 
 #endif // CONSTANTS_HH

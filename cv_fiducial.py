@@ -138,6 +138,10 @@ class CV_Fiducial:
                 if fiducial_id in constants.PALLET_FIDUCIALS:
                     centerX = centerX - (constants.CV_PALLET_CENTER_OFFSET * math.cos(orientation))
                     centerY = centerY + (constants.CV_PALLET_CENTER_OFFSET * math.sin(orientation))
+                    
+                if fiducial_id in constants.GOAL_FIDUCIALS:
+                    centerX = centerX - (constants.CV_GOAL_CENTER_OFFSET * math.cos(orientation))
+                    centerY = centerY + (constants.CV_GOAL_CENTER_OFFSET * math.sin(orientation))
 
                 # reserve the extra processing for the robot fiducials
                 if fiducial_id in constants.ROBOT_FIDUCIALS and constants.CV_LOCALIZE_ROBOTS_FIDUCIALS:

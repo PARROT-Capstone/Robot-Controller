@@ -101,6 +101,7 @@ class CV:
             robotPositions, _ = self.cv_fiducial.cv_fiducial_getRobotPositions()
 
         # 1. Place a vector at each robot's position
+        # print("len(robotPositions): ", len(robotPositions))
         for i in range(len(robotPositions)):
             robotPose = robotPositions[i]
             (robot_pos_x, robot_pos_y, robot_rotation_rad) = robotPose
@@ -154,10 +155,11 @@ class CV:
 
         # 4. Visualize the target pose
         for targetPose in targetPoses:
+            # print("target", targetPose)
             (target_pos_x, target_pos_y, target_rotation_rad) = targetPose
             start_point = (int(target_pos_x), int(target_pos_y))
-            end_point = (int(target_pos_x + 15*np.cos(target_rotation_rad)), int(target_pos_y - 15*np.sin(target_rotation_rad)))
-            cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 3)
+            end_point = (int(target_pos_x + 20*np.cos(target_rotation_rad)), int(target_pos_y - 20*np.sin(target_rotation_rad)))
+            cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 2)
 
 
 
