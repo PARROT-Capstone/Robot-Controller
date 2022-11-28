@@ -68,6 +68,15 @@ while(True):
     for path in paths:
         mainHelper.preconditionPath(path)
 
+    # Exit if there are no paths for the robots
+    allPathsEmpty = True
+    for path in paths:
+        if len(path) > 2:
+            allPathsEmpty = False
+    if allPathsEmpty:
+        print("All robots are done")
+        exit()
+
     threads = []
     robotNumber = len(paths)
     robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
