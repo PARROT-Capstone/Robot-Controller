@@ -28,8 +28,8 @@ GOAL_FIDUCIALS = [9,11,15,13,14]
 # Uses same index as ROBOT_FIDUCIALS
 ROBOT_HARDWARE_NUMBERS = [3, 1, 2]
 
-# WEBCAM_ID = 0 # Saral
-WEBCAM_ID = 1 # Prithu
+WEBCAM_ID = 2 # Saral
+# WEBCAM_ID = 1 # Prithu
 
 
 path = os.getcwd()
@@ -47,7 +47,7 @@ CAMERA_MATRIX = np.array([[2.03722817e+03, 0.00000000e+00, 1.50860597e+03], \
     [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
 DISTORTION_COEFFICIENTS = np.array([[ 1.13393179e-01, -2.99566559e-01, -1.80836671e-05, -7.23427956e-05, 2.41628393e-01]])
 
-CV_PALLET_CENTER_OFFSET = 80 # mm or pixels
+CV_PALLET_CENTER_OFFSET = 50 # mm or pixels
 CV_GOAL_CENTER_OFFSET = 50
 
 CV_PALLET_OFFSET = 30 # offset to give the planner for pickup controller

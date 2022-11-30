@@ -40,6 +40,8 @@ class CV:
 
     def cv_GetRobotCounts(self):
         return self.robotCount
+    def cv_getLatestSandboxImage(self):
+        return self.latestSandboxImage
 
     def cv_runLocalizer(self):
         self.latestImageRaw = self._cv_CaptureImage()
