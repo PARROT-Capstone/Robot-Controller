@@ -282,9 +282,9 @@ if __name__ == '__main__':
                     startPoint.append(0)
                     startPoint.append(0) # initial timestep and tag
                     backupPoint = startPoint.copy()
-                    backupPoint[0] = backupPoint[0] + np.cos(backupPoint[2]) * 100
-                    backupPoint[1] = backupPoint[1] - np.sin(backupPoint[2]) * 100
-                    backupPoint[3] += 10
+                    backupPoint[0] = backupPoint[0] + np.cos(backupPoint[2]) * constants.BACKUP_TIME * 10
+                    backupPoint[1] = backupPoint[1] - np.sin(backupPoint[2]) * constants.BACKUP_TIME * 10
+                    backupPoint[3] += constants.BACKUP_TIME
 
                     path = [startPoint, backupPoint]
                     pathDuration = backupPoint[3]

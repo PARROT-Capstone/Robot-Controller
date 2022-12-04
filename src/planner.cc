@@ -109,9 +109,7 @@ int Planner::plan()
     for (int i = 0; i < this->num_robots; i++)
     {
         // create a path with only the current robot pose
-        std::vector<std::vector<double>> path;
-        path.push_back({this->robot_poses[i][0], this->robot_poses[i][1], this->robot_poses[i][2], 0, 2});
-        this->paths[i] = path;
+        this->paths[i] = {{this->robot_poses[i][0], this->robot_poses[i][1], this->robot_poses[i][2], 0, 2}};
     }
 
     // Plan paths for each robot
@@ -125,12 +123,11 @@ int Planner::plan()
         {
             std::cout << this->robot_poses[i][j] << " ";
         }
-        
 
         if (task_assignments[i] == -1)
         {
             // No task assigned to this robot
-            std::cout << "No task assigned to this robot" << std::endl;           
+            std::cout << "No task assigned to this robot" << std::endl;
             continue;
         }
 

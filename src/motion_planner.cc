@@ -246,8 +246,16 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
     }
 
     // Check if the robot is in dynamic collision with other robots.
-    for (auto &robot_path : this->paths)
+    for (int i = 0; i < this->paths.size(); i++)
     {
+        // ignore the robot's own path
+        if (i == this->robot_index)
+        {
+            continue;
+        }
+
+        auto robot_path = this->paths[i];
+
         // adjust other robot inflation radius based on if it has a pallet
         int other_robot_inflation_radius = ROBOT_FOOTPRINT_RADIUS;
 
