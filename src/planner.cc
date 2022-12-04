@@ -105,16 +105,40 @@ int Planner::plan()
     // init the paths vector
     this->paths = std::vector<std::vector<std::vector<double>>>(this->num_robots);
 
+    // create default paths for all robots to avoid static collisions
+    for (int i = 0; i < this->num_robots; i++)
+    {
+        // create a path with only the current robot pose
+        std::vector<std::vector<double>> path;
+        path.push_back({this->robot_poses[i][0], this->robot_poses[i][1], this->robot_poses[i][2], 0, 2});
+        this->paths[i] = path;
+    }
+
     // Plan paths for each robot
     for (int i = 0; i < this->num_robots; i++)
     {
         std::cout << "Planning for robot " << i << std::endl;
 
+        // print the current robot pose
+        std::cout << "Current robot pose: " << std::endl;
+        for (int j = 0; j < this->robot_poses[i].size(); j++)
+        {
+            std::cout << this->robot_poses[i][j] << " ";
+        }
+        
+
         if (task_assignments[i] == -1)
         {
             // No task assigned to this robot
-            std::cout << "No task assigned to this robot" << std::endl;
+            std::cout << "No task assigned to this robot" << std::endl;           
             continue;
+        }
+
+        // print the current pallet and goal pose
+        std::cout << "Current pallet and goal pose: " << std::endl;
+        for (int j = 0; j < this->pallet_and_goal_poses[task_assignments[i]].size(); j++)
+        {
+            std::cout << this->pallet_and_goal_poses[task_assignments[i]][j] << " ";
         }
 
         this->motion_planners[i]->set_start(this->robot_poses[i]);

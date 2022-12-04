@@ -240,7 +240,6 @@ if __name__ == '__main__':
             start = time.time()
             computerVision.cv_runLocalizer()
             robotPoses, _ = computerVision.cv_GetRobotPositions()
-            # print("CV Framerate: ", 1/(time.time() - start))
             palletPoses = computerVision.cv_GetPalletPositions() # NOTE right now we are using fiducial ID 2
             latestSandboxImage[0] = computerVision.cv_getLatestSandboxImage()
             targetPoses = []

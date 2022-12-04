@@ -65,47 +65,49 @@ std::vector<int> TaskPlanner::assign_pallets_to_robots_simple(std::vector<std::v
 std::vector<int> TaskPlanner::assign_pallets_to_robots_heuristic(std::vector<std::vector<double>> robot_poses,
                                                                  std::vector<std::vector<double>> pallet_and_goal_poses)
 {
-    // Task assignment vector
-    std::vector<int> task_assignments;
 
-    // assign each robot to its closest pallet
-    for (int i = 0; i < this->num_robots; i++)
+    // Create task assigments vector full of -1s
+    std::vector<int> task_assignments(this->num_robots, -1);
+
+    std::vector<bool> robot_assigned(robot_poses.size(), false);
+
+    // create a vector of distances from each pallet to all robots
+    std::vector<std::vector<double>> pallet_to_robot_distances;
+    for (int i = 0; i < pallet_and_goal_poses.size(); i++)
     {
-        // get the robot pose
-        std::vector<double> robot_pose = robot_poses[i];
-        // initialize the closest pallet index to -1
-        int closest_pallet_index = -1;
-        // initialize the closest pallet distance to -1
-        double closest_pallet_distance = -1;
-        // loop through each pallet and goal
-        for (int j = 0; j < pallet_and_goal_poses.size(); j++)
+        std::vector<double> pallet_to_robot_distance;
+        for (int j = 0; j < robot_poses.size(); j++)
         {
-            // make sure the pallet is not already dropped off
-            if (std::find(this->dropped_off_pallets.begin(), this->dropped_off_pallets.end(), j) == this->dropped_off_pallets.end())
+            pallet_to_robot_distance.push_back(sqrt(pow(pallet_and_goal_poses[i][0] - robot_poses[j][0], 2) + pow(pallet_and_goal_poses[i][1] - robot_poses[j][1], 2)));
+        }
+        pallet_to_robot_distances.push_back(pallet_to_robot_distance);
+    }
+
+    // loop through each pallet and assign it to the closest robot
+    for (int i = 0; i < pallet_and_goal_poses.size(); i++)
+    {   
+        // make sure the pallet is not already dropped off
+        if (std::find(this->dropped_off_pallets.begin(), this->dropped_off_pallets.end(), i) != this->dropped_off_pallets.end())
+        {
+            continue;
+        }
+        // find the closest robot to the pallet
+        int closest_robot = -1;
+        double closest_robot_distance = 1000000;
+        for (int j = 0; j < robot_poses.size(); j++)
+        {
+            if (pallet_to_robot_distances[i][j] < closest_robot_distance && !robot_assigned[j])
             {
-                // get the pallet pose
-                std::vector<double> pallet_pose = pallet_and_goal_poses[j];
-                // calculate the distance between the robot and the pallet
-                double distance = sqrt(pow(robot_pose[0] - pallet_pose[0], 2) + pow(robot_pose[1] - pallet_pose[1], 2));
-                // if the distance is less than the closest pallet distance, update the closest pallet distance and index
-                if (distance < closest_pallet_distance || closest_pallet_distance == -1)
-                {
-                    closest_pallet_distance = distance;
-                    closest_pallet_index = j;
-                }
+                closest_robot = j;
+                closest_robot_distance = pallet_to_robot_distances[i][j];
             }
         }
-
-        // if the closest pallet index is not -1, add it to the task assignments vector
-        if (closest_pallet_index != -1)
+        if (closest_robot != -1)
         {
-            task_assignments.push_back(closest_pallet_index);
-            // add the pallet to the dropped off pallets vector
-            this->dropped_off_pallets.push_back(closest_pallet_index);
-        }
-        else
-        {
-            task_assignments.push_back(-1);
+            // assign the pallet to the closest robot
+            task_assignments[closest_robot] = i;
+            robot_assigned[closest_robot] = true;
+            this->dropped_off_pallets.push_back(i);
         }
     }
 

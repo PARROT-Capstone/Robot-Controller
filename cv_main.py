@@ -95,6 +95,9 @@ class CV:
         #     if self.latestSandboxImage is None:
         #         return # wait for a valid image to be captured
         self.visualizerField = self.latestSandboxImage.copy()
+        scale = constants.CV_VIZ_SCALE
+        dsize = (int(self.visualizerField.shape[1] * scale), int(self.visualizerField.shape[0] * scale))
+        self.visualizerField = cv.resize(self.visualizerField, dsize)
 
         robotPositions = None
         if constants.CV_LOCALIZE_ROBOTS_FIDUCIALS == False:
@@ -107,8 +110,8 @@ class CV:
         for i in range(len(robotPositions)):
             robotPose = robotPositions[i]
             (robot_pos_x, robot_pos_y, robot_rotation_rad) = robotPose
-            start_point = (int(robot_pos_x), int(robot_pos_y))
-            end_point = (int(robot_pos_x + 100*np.cos(robot_rotation_rad)), int(robot_pos_y - 100*np.sin(robot_rotation_rad)))
+            start_point = (int(robot_pos_x*scale), int(robot_pos_y*scale))
+            end_point = (int(robot_pos_x*scale + 100*scale*np.cos(robot_rotation_rad)), int(robot_pos_y*scale - 100*scale*np.sin(robot_rotation_rad)))
             cv.arrowedLine(self.visualizerField, start_point, end_point, (255, 0, 0), 2)
         
             # # 5. Visualize the robot's indivigual speeds
@@ -128,11 +131,11 @@ class CV:
             # 6. Visualize the robot direction vector
             robotRightSpeed = robotRightSpeeds[i]
             robotLeftSpeed = robotLeftSpeeds[i]
-            magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 10
+            magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 10*scale*scale
             angle = ((robotRightSpeed - robotLeftSpeed) / constants.maxRobotSpeed) * np.pi # scale to pi radians
             angle += robot_rotation_rad
-            start_point = (int(robot_pos_x), int(robot_pos_y))
-            end_point = (int(robot_pos_x + magnitude * np.cos(angle)), int(robot_pos_y - magnitude * np.sin(angle)))
+            start_point = (int(robot_pos_x*scale), int(robot_pos_y*scale))
+            end_point = (int(robot_pos_x*scale + magnitude*scale * np.cos(angle)), int(robot_pos_y*scale - magnitude*scale * np.sin(angle)))
             cv.arrowedLine(self.visualizerField, start_point, end_point, (255, 255, 255), 2)
 
 
@@ -151,16 +154,16 @@ class CV:
         for robotPath in robotPaths:
             for pose in robotPath:
                 (robot_pos_x, robot_pos_y, robot_rotation_rad, time, tag) = pose
-                start_point = (int(robot_pos_x), int(robot_pos_y))
-                end_point = (int(robot_pos_x + 20*np.cos(robot_rotation_rad)), int(robot_pos_y - 20*np.sin(robot_rotation_rad)))
+                start_point = (int(robot_pos_x*scale), int(robot_pos_y*scale))
+                end_point = (int(robot_pos_x*scale + 20*scale*np.cos(robot_rotation_rad)), int(robot_pos_y*scale - 20*scale*np.sin(robot_rotation_rad)))
                 cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 255, 0), 2)
 
         # 4. Visualize the target pose
         for targetPose in targetPoses:
             # print("target", targetPose)
             (target_pos_x, target_pos_y, target_rotation_rad) = targetPose
-            start_point = (int(target_pos_x), int(target_pos_y))
-            end_point = (int(target_pos_x + 20*np.cos(target_rotation_rad)), int(target_pos_y - 20*np.sin(target_rotation_rad)))
+            start_point = (int(target_pos_x*scale), int(target_pos_y*scale))
+            end_point = (int(target_pos_x*scale + 20*scale*np.cos(target_rotation_rad)), int(target_pos_y*scale - 20*scale*np.sin(target_rotation_rad)))
             cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 2)
 
 
