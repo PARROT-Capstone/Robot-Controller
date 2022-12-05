@@ -19,7 +19,7 @@ const double H_VALUE_WEIGHT = 1;
 const double G_VALUE_WEIGHT = 1;
 const int ROBOT_FOOTPRINT_RADIUS = 6;
 const int ROBOT_FOOTPRINT_RADIUS_WITH_PALLET = 7;
-const int PALLET_FOOTPRINT_RADIUS = 2;
+const int PALLET_FOOTPRINT_RADIUS = 3;
 const int ROBOT_OFFSET = 1;
 
 const double STRAIGHT_TIME_STEP = 0.5; // 1.1111 cm/s

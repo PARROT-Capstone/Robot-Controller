@@ -170,7 +170,7 @@ if __name__ == '__main__':
             robotHwNumber = constants.ROBOT_HARDWARE_NUMBERS[constants.ROBOT_FIDUCIALS.index(fiducialId)]
             url = f"http://parrot-robot{robotHwNumber}.wifi.local.cmu.edu"
             session = requests.Session()
-            session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=1000000"})
+            session.headers.update({'Connection': 'Keep-Alive', 'Keep-Alive': "timeout=5, max=10000000000"})
             while True:
                 sendCommands[robotId] = False
                 velLeftLinear = robotCommands[robotId][0]
