@@ -49,6 +49,15 @@ class Controller:
         self.robotCommand = (0, 0)
         self.last_position_time = self.startTime
         self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
+        self.emEnableTime = -1
+        self.emDisableTime = -1
+        if self.robotPath is not None:
+            enable = filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_ENABLE, self.robotPath)
+            disable = filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_DISABLE, self.robotPath)
+            if len(enable) == 1:
+                self.emEnableTime = enable[0][timeIndex]
+            if len(disable) == 1:
+                self.emDisableTime = disable[0][timeIndex]
         if constants.CONTROLS_DEBUG:
             self.xErrorList = []
             self.yErrorList = []
@@ -157,20 +166,28 @@ class Controller:
         electromagnet_command = constants.ELECTROMAGNET_DONT_SEND
 
 
-        if ((nextPoint[timeIndex] <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and (nextPoint[tagIndex] != 0)):
-            electromagnet_command = nextPoint[tagIndex]
-            self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL if electromagnet_command == constants.ELECTROMAGNET_ENABLE else constants.CONTROLS_STATE_DRIVING_TO_PALLET
-            if (electromagnet_command == constants.ELECTROMAGNET_DISABLE):
-                self.finishedController = True
-        elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_ENABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET)):
+        if (self.emEnableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET:
             electromagnet_command = constants.ELECTROMAGNET_ENABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
-        elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_DISABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL)):
+        elif (self.emDisableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL:
             electromagnet_command = constants.ELECTROMAGNET_DISABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
             self.finishedController = True
-        if (constants.CONTROLS_DEBUG and electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
-            print("Electromagnet command: ", electromagnet_command)
+
+        # if ((nextPoint[timeIndex] <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and (nextPoint[tagIndex] != 0)):
+        #     electromagnet_command = nextPoint[tagIndex]
+        #     self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL if electromagnet_command == constants.ELECTROMAGNET_ENABLE else constants.CONTROLS_STATE_DRIVING_TO_PALLET
+        #     if (electromagnet_command == constants.ELECTROMAGNET_DISABLE):
+        #         self.finishedController = True
+        # elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_ENABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET)):
+        #     electromagnet_command = constants.ELECTROMAGNET_ENABLE
+        #     self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
+        # elif ((pastPoint[tagIndex] == constants.ELECTROMAGNET_DISABLE) and (self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL)):
+        #     electromagnet_command = constants.ELECTROMAGNET_DISABLE
+        #     self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
+        #     self.finishedController = True
+        # if (constants.CONTROLS_DEBUG and electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
+        #     print("Electromagnet command: ", electromagnet_command)
 
         return ((velLeft, velRight, electromagnet_command), targetPose_global, feedforward, feedback)
     
