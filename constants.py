@@ -28,8 +28,8 @@ GOAL_FIDUCIALS = [9,11,15,13,14]
 # Uses same index as ROBOT_FIDUCIALS
 ROBOT_HARDWARE_NUMBERS = [3, 1, 2]
 
-# WEBCAM_ID = 2 # Saral
-WEBCAM_ID = 1 # Prithu
+WEBCAM_ID = 2 # Saral
+# WEBCAM_ID = 1 # Prithu
 
 CV_VIZ_SCALE = 0.4
 
@@ -97,7 +97,6 @@ wheel_radius = 30 # mm
 tangent_curviness = 1.25 # multiplier for curviness of the spline interpolation
 maxRobotSpeed = 100 #mm/s
 CONTROLS_DEBUG = False
-CONTROLS_ELECTROMAGNET_TIME_THRESHOLD = 2 #s
 CONTROLS_STATE_DRIVING_TO_GOAL = 0
 CONTROLS_STATE_DRIVING_TO_PALLET = 1
 CONTROLS_MAX_PWM_OFFSET = 40
