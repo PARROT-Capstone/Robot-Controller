@@ -270,7 +270,7 @@ bool MotionPlanner::is_in_collision(Node *node, bool is_pallet_goal)
             }
 
             // If the robot is in a 1 second window of the path point, check for collision
-            if (abs(node->time - path_point[3]) <= 1 || path_point[4] == 2)
+            if (abs(node->time - path_point[3]) <= 5 || path_point[4] == 2)
             {
                 // calculate the x and y bounds of the other robot given the inflation radius
                 int other_robot_x_min = path_point[0] - other_robot_inflation_radius;

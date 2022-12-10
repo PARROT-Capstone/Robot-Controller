@@ -85,7 +85,7 @@ std::vector<int> TaskPlanner::assign_pallets_to_robots_heuristic(std::vector<std
 
     // loop through each pallet and assign it to the closest robot
     for (int i = 0; i < pallet_and_goal_poses.size(); i++)
-    {   
+    {
         // make sure the pallet is not already dropped off
         if (std::find(this->dropped_off_pallets.begin(), this->dropped_off_pallets.end(), i) != this->dropped_off_pallets.end())
         {
@@ -114,15 +114,43 @@ std::vector<int> TaskPlanner::assign_pallets_to_robots_heuristic(std::vector<std
     return task_assignments;
 }
 
-std::vector<int> TaskPlanner::assign_pallets_to_robots(std::vector<std::vector<double>> robot_poses,
-                                                       std::vector<std::vector<double>> pallet_and_goal_poses)
+void TaskPlanner::assign_pallets_to_robots(std::vector<std::vector<double>> robot_poses,
+                                           std::vector<std::vector<double>> pallet_and_goal_poses)
 {
     if (USE_HEURISTIC)
     {
-        return this->assign_pallets_to_robots_heuristic(robot_poses, pallet_and_goal_poses);
+        this->task_assignments = this->assign_pallets_to_robots_heuristic(robot_poses, pallet_and_goal_poses);
     }
     else
     {
-        return this->assign_pallets_to_robots_simple(robot_poses, pallet_and_goal_poses);
+        this->task_assignments = this->assign_pallets_to_robots_simple(robot_poses, pallet_and_goal_poses);
     }
+}
+
+void TaskPlanner::unassign_pallet_from_robot(int robot_id)
+{
+    // unassign the pallet from the robot
+    this->task_assignments[robot_id] = -1;
+
+    // find the index of the pallet in the dropped off pallets vector
+    int index = -1;
+    for (int i = 0; i < this->dropped_off_pallets.size(); i++)
+    {
+        if (this->dropped_off_pallets[i] == robot_id)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    // remove the pallet from the dropped off pallets vector
+    if (index != -1)
+    {
+        this->dropped_off_pallets.erase(this->dropped_off_pallets.begin() + index);
+    }
+}
+
+std::vector<int> TaskPlanner::get_task_assignments()
+{
+    return this->task_assignments;
 }

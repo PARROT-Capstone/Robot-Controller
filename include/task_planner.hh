@@ -28,8 +28,8 @@ public:
      * @param pallet_and_goal_poses
      * @return std::vector<int> A list of pallet indices for each robot. -1 if no task assigned.
      */
-    std::vector<int> assign_pallets_to_robots(std::vector<std::vector<double>> robot_poses,
-                                              std::vector<std::vector<double>> pallet_and_goal_poses);
+    void assign_pallets_to_robots(std::vector<std::vector<double>> robot_poses,
+                                  std::vector<std::vector<double>> pallet_and_goal_poses);
 
     /**
      * @brief Returns the task assignment for the robots using a simple algorithm
@@ -51,11 +51,16 @@ public:
     std::vector<int> assign_pallets_to_robots_heuristic(std::vector<std::vector<double>> robot_poses,
                                                         std::vector<std::vector<double>> pallet_and_goal_poses);
 
+    void unassign_pallet_from_robot(int robot_id);
+
+    std::vector<int> get_task_assignments();
+
 private:
     int num_robots;
 
     // vector of dropped off pallets
     std::vector<int> dropped_off_pallets;
+    std::vector<int> task_assignments;
 };
 
 #endif // TASK_PLANNER_HH
