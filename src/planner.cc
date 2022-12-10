@@ -100,7 +100,8 @@ void Planner::set_pallet_and_goal_poses(std::vector<std::vector<double>> pallet_
 int Planner::plan()
 {
     // Assign tasks to robots
-    std::vector<int> task_assignments = this->task_planner->assign_pallets_to_robots(this->robot_poses, this->pallet_and_goal_poses);
+    this->task_planner->assign_pallets_to_robots(this->robot_poses, this->pallet_and_goal_poses);
+    std::vector<int> task_assignments = this->task_planner->get_task_assignments();
 
     // init the paths vector
     this->paths = std::vector<std::vector<std::vector<double>>>(this->num_robots);
@@ -145,58 +146,63 @@ int Planner::plan()
         if (this->motion_planners[i]->plan() == -1)
         {
             std::cout << "Planning failed for robot " << i << std::endl;
-            std::cout << "Trying to replan with varying start poses" << std::endl;
+            // unassign the task from this robot
+            this->task_planner->unassign_pallet_from_robot(i);
+            // update the task assignments
+            task_assignments = this->task_planner->get_task_assignments();
 
-            // sample NUM_SAMPLED_STARTS randome start theta values within a range of -pi/2 to pi/2 around the current theta
-            std::vector<double> sampled_start_thetas;
-            for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
-            {
-                sampled_start_thetas.push_back(this->robot_poses[i][2] + (rand() % 1000 - 500) * M_PI / 1000);
-            }
+            // std::cout << "Trying to replan with varying start poses" << std::endl;
 
-            // sample NUM_SAMPLED_STARTS random radius values within a range of 0 to SEARCH_RADIUS_CM
-            std::vector<double> sampled_start_radii;
-            for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
-            {
-                sampled_start_radii.push_back(rand() % 1000 * SEARCH_RADIUS_CM / 1000);
-            }
+            // // sample NUM_SAMPLED_STARTS randome start theta values within a range of -pi/2 to pi/2 around the current theta
+            // std::vector<double> sampled_start_thetas;
+            // for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
+            // {
+            //     sampled_start_thetas.push_back(this->robot_poses[i][2] + (rand() % 1000 - 500) * M_PI / 1000);
+            // }
 
-            // sample NUM_SAMPLED_STARTS random start poses
-            std::vector<std::vector<double>> sampled_start_poses;
-            for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
-            {
-                std::vector<double> sampled_start_pose = {this->robot_poses[i][0] + sampled_start_radii[j] * cos(sampled_start_thetas[j]),
-                                                          this->robot_poses[i][1] + sampled_start_radii[j] * sin(sampled_start_thetas[j]),
-                                                          sampled_start_thetas[j]};
-                sampled_start_poses.push_back(sampled_start_pose);
-            }
+            // // sample NUM_SAMPLED_STARTS random radius values within a range of 0 to SEARCH_RADIUS_CM
+            // std::vector<double> sampled_start_radii;
+            // for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
+            // {
+            //     sampled_start_radii.push_back(rand() % 1000 * SEARCH_RADIUS_CM / 1000);
+            // }
 
-            bool planning_successful = false;
+            // // sample NUM_SAMPLED_STARTS random start poses
+            // std::vector<std::vector<double>> sampled_start_poses;
+            // for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
+            // {
+            //     std::vector<double> sampled_start_pose = {this->robot_poses[i][0] + sampled_start_radii[j] * cos(sampled_start_thetas[j]),
+            //                                               this->robot_poses[i][1] + sampled_start_radii[j] * sin(sampled_start_thetas[j]),
+            //                                               sampled_start_thetas[j]};
+            //     sampled_start_poses.push_back(sampled_start_pose);
+            // }
 
-            // try to plan with each sampled start pose
-            for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
-            {
-                this->motion_planners[i]->set_start(sampled_start_poses[j]);
-                std::cout << "Trying to plan with sampled start pose " << j << std::endl;
-                std::cout << "Sampled start pose: " << std::endl;
-                for (int k = 0; k < sampled_start_poses[j].size(); k++)
-                {
-                    std::cout << sampled_start_poses[j][k] << " ";
-                }
-                if (this->motion_planners[i]->plan() == 0)
-                {
-                    planning_successful = true;
-                    std::cout << "Planning successful for robot " << i << " with sampled start pose " << j << std::endl;
-                    this->paths[i] = this->motion_planners[i]->get_path();
-                    break;
-                }
-            }
+            // bool planning_successful = false;
 
-            if (!planning_successful)
-            {
-                std::cout << "Planning failed for robot " << i << " with all sampled start poses" << std::endl;
-                return -1;
-            }
+            // // try to plan with each sampled start pose
+            // for (int j = 0; j < NUM_SAMPLED_STARTS; j++)
+            // {
+            //     this->motion_planners[i]->set_start(sampled_start_poses[j]);
+            //     std::cout << "Trying to plan with sampled start pose " << j << std::endl;
+            //     std::cout << "Sampled start pose: " << std::endl;
+            //     for (int k = 0; k < sampled_start_poses[j].size(); k++)
+            //     {
+            //         std::cout << sampled_start_poses[j][k] << " ";
+            //     }
+            //     if (this->motion_planners[i]->plan() == 0)
+            //     {
+            //         planning_successful = true;
+            //         std::cout << "Planning successful for robot " << i << " with sampled start pose " << j << std::endl;
+            //         this->paths[i] = this->motion_planners[i]->get_path();
+            //         break;
+            //     }
+            // }
+
+            // if (!planning_successful)
+            // {
+            //     std::cout << "Planning failed for robot " << i << " with all sampled start poses" << std::endl;
+            //     return -1;
+            // }
         }
         std::cout << "Planning successful for robot " << i << std::endl;
         this->paths[i] = this->motion_planners[i]->get_path();
