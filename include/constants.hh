@@ -42,4 +42,9 @@ const bool USE_HEURISTIC = true;
 
 const bool DEBUG = false;
 
+const int NUM_SAMPLED_STARTS = 10;
+const double SEARCH_RADIUS_CM = 10;
+
+const double MAX_SEARCH_TIME = 10;
+
 #endif // CONSTANTS_HH

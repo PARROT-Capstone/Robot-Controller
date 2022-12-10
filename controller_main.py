@@ -52,8 +52,8 @@ class Controller:
         self.emEnableTime = -1
         self.emDisableTime = -1
         if self.robotPath is not None:
-            enable = filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_ENABLE, self.robotPath)
-            disable = filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_DISABLE, self.robotPath)
+            enable = list(filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_ENABLE, self.robotPath))
+            disable = list(filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_DISABLE, self.robotPath))
             if len(enable) == 1:
                 self.emEnableTime = enable[0][timeIndex]
             if len(disable) == 1:
@@ -166,7 +166,7 @@ class Controller:
         electromagnet_command = constants.ELECTROMAGNET_DONT_SEND
 
 
-        if (self.emEnableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET:
+        if (not self.finishedController and self.emEnableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET:
             electromagnet_command = constants.ELECTROMAGNET_ENABLE
             self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
         elif (self.emDisableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL:

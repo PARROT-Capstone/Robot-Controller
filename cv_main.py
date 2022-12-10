@@ -151,12 +151,14 @@ class CV:
         #     cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 0, 255), 2)
         
         # 3. Visualize the current path (assume it's a dict with keys being robot ID)
-        for robotPath in robotPaths:
+        for i in range(len(robotPaths)):
+            robotPath = robotPaths[i]
+            color = constants.CV_COLOR_LOOKUP[i]
             for pose in robotPath:
                 (robot_pos_x, robot_pos_y, robot_rotation_rad, time, tag) = pose
                 start_point = (int(robot_pos_x*scale), int(robot_pos_y*scale))
                 end_point = (int(robot_pos_x*scale + 20*scale*np.cos(robot_rotation_rad)), int(robot_pos_y*scale - 20*scale*np.sin(robot_rotation_rad)))
-                cv.arrowedLine(self.visualizerField, start_point, end_point, (0, 255, 0), 2)
+                cv.arrowedLine(self.visualizerField, start_point, end_point, color, 2)
 
         # 4. Visualize the target pose
         for targetPose in targetPoses:

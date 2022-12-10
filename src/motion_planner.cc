@@ -398,7 +398,7 @@ int MotionPlanner::a_star(bool is_pallet_goal)
 
         // Check if the search time has exceeded the limit
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() > 20)
+        if (std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() > MAX_SEARCH_TIME)
         {
             std::cout << "Search time exceeded" << std::endl;
             break;

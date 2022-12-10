@@ -38,6 +38,11 @@ BACKUP_TIME = 15 # seconds
 path = os.getcwd()
 CV_DEBUG_IMAGE_PATH = path + "/computerVisionFragments/field1080p.jpg"
 
+# lookup table for visualizer colors
+CV_COLOR_LOOKUP = [(165, 165, 110),
+                    (82, 107, 253),
+                    (103, 191, 150)]
+
 # The physical real world width of the fiducial markers in mm.
 FIDUCIAL_WIDTH_MM = 30 # TODO: Just a guess
 
