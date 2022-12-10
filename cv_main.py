@@ -18,9 +18,23 @@ from constants import debugPrint
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import pandas as pd
+import threading
 
     
-cap = cv.VideoCapture(constants.WEBCAM_ID)
+
+cvImage = None
+def updateImage():
+    global cvImage
+    cap = cv.VideoCapture(constants.WEBCAM_ID)
+    print("Thread created")
+    while(True):
+        ret, frame = cap.read()
+        cvImage = frame
+
+thread = threading.Thread(target=updateImage, args=())
+thread.start()
+print("Going to sleep")
+time.sleep(5)
 
 class CV:
     def __init__(self):
@@ -131,7 +145,7 @@ class CV:
             # 6. Visualize the robot direction vector
             robotRightSpeed = robotRightSpeeds[i]
             robotLeftSpeed = robotLeftSpeeds[i]
-            magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 10*scale*scale
+            magnitude = (abs(robotRightSpeed) + abs(robotLeftSpeed)) * 20*scale*scale
             angle = ((robotRightSpeed - robotLeftSpeed) / constants.maxRobotSpeed) * np.pi # scale to pi radians
             angle += robot_rotation_rad
             start_point = (int(robot_pos_x*scale), int(robot_pos_y*scale))
@@ -167,9 +181,6 @@ class CV:
             start_point = (int(target_pos_x*scale), int(target_pos_y*scale))
             end_point = (int(target_pos_x*scale + 20*scale*np.cos(target_rotation_rad)), int(target_pos_y*scale - 20*scale*np.sin(target_rotation_rad)))
             cv.arrowedLine(self.visualizerField, start_point, end_point, (28, 121, 225), 2)
-
-
-
 
                     
         if(constants.CV_VISUALIZE_PATH):
@@ -257,20 +268,24 @@ class CV:
 
 
     def _cv_CaptureImage(self):
-        if constants.CV_USE_CAMERA == False:
-            image = cv.imread(constants.CV_DEBUG_IMAGE_PATH)
-            cv.imshow("Source Image", image)
-            cv.waitKey(0)
-            return image
+        while (cvImage is None):
+            print("Waiting on image")
+            time.sleep(0.1)
+        return cvImage
+        # if constants.CV_USE_CAMERA == False:
+        #     image = cv.imread(constants.CV_DEBUG_IMAGE_PATH)
+        #     cv.imshow("Source Image", image)
+        #     cv.waitKey(0)
+        #     return image
 
-        ret, frame = cap.read()
-        while np.shape(frame) == ():
-            ret, frame = cap.read()
-            print("Waiting for camera to initialize...")
-        if constants.CV_DEBUG:
-            cv.imshow("Source Image", frame)
-            cv.waitKey(0)
-        return frame
+        # ret, frame = cap.read()
+        # while np.shape(frame) == ():
+        #     ret, frame = cap.read()
+        #     print("Waiting for camera to initialize...")
+        # if constants.CV_DEBUG:
+        #     cv.imshow("Source Image", frame)
+        #     cv.waitKey(0)
+        # return frame
 
     def _cv_extractLEDpositions(self, img):
         '''

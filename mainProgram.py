@@ -197,10 +197,8 @@ if __name__ == '__main__':
                 print(np.shape(vizImage[0]))
                 cv.imshow("Visualizer", vizImage[0])
                 cv.waitKey(1)
-            else: 
-                print("viz not running, main process")
             end = time.time()
-            print("Frame Rate: ", 1 / (end - start))
+            # print("Frame Rate: ", 1 / (end - start))
 
             if allControllersDone:
                 print("Finished main loop")

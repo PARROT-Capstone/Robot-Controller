@@ -49,15 +49,20 @@ class Controller:
         self.robotCommand = (0, 0)
         self.last_position_time = self.startTime
         self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
-        self.emEnableTime = -1
-        self.emDisableTime = -1
+        self.emEnableTime = None
+        self.emDisableTime = None
         if self.robotPath is not None:
             enable = list(filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_ENABLE, self.robotPath))
             disable = list(filter(lambda point: point[tagIndex]==constants.ELECTROMAGNET_DISABLE, self.robotPath))
-            if len(enable) == 1:
+            print("Pick up points:", enable)
+            if len(enable) > 0:
                 self.emEnableTime = enable[0][timeIndex]
-            if len(disable) == 1:
+            if len(disable) > 0:
                 self.emDisableTime = disable[0][timeIndex]
+        if self.emEnableTime is None:
+            print("PICKUP TIME NOT FOUND")
+        if self.emDisableTime is None:
+            print("DROPOFF TIME NOT FOUND")
         if constants.CONTROLS_DEBUG:
             self.xErrorList = []
             self.yErrorList = []
@@ -166,13 +171,13 @@ class Controller:
         electromagnet_command = constants.ELECTROMAGNET_DONT_SEND
 
 
-        if (not self.finishedController and self.emEnableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_PALLET:
-            electromagnet_command = constants.ELECTROMAGNET_ENABLE
-            self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
-        elif (self.emDisableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and self.state == constants.CONTROLS_STATE_DRIVING_TO_GOAL:
+        if (self.emDisableTime is not None) and (self.emDisableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD):
             electromagnet_command = constants.ELECTROMAGNET_DISABLE
-            self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
+            # self.state = constants.CONTROLS_STATE_DRIVING_TO_PALLET
             self.finishedController = True
+        elif (self.emEnableTime is not None) and (not self.finishedController) and (self.emEnableTime <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD):
+            electromagnet_command = constants.ELECTROMAGNET_ENABLE
+            # self.state = constants.CONTROLS_STATE_DRIVING_TO_GOAL
 
         # if ((nextPoint[timeIndex] <= relativeTime + constants.CONTROLS_ELECTROMAGNET_TIME_THRESHOLD) and (nextPoint[tagIndex] != 0)):
         #     electromagnet_command = nextPoint[tagIndex]
