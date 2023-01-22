@@ -4,12 +4,12 @@ This repo is the main software repo for the project
 
 # Table of Contents
 1. [Overview](#overview)
-2. [Setup & Materials Required](#setup_materials)
-3. [Computer Vision](#computer_vision)
+2. [Setup and Materials Required](#setup-and-materials-required)
+3. [Computer Vision](#computer-vision)
 4. [Controller](#controller)
 5. [Visualizer](#visualizer)
-6. [Motion Planner](#motion_planner)
-7. [Future Work] (#future_work)
+6. [Motion Planner](#motion-planner)
+7. [Future Work](#future-work)
 
 
 ## Overview
@@ -18,9 +18,9 @@ This project was attempted for our ECE capstone 2022 at Carnegie Mellon by Saral
 
 Relevant links are linked below: 
 1. Youtube Video
-2. Research Paper
-3. Blog with development progress
-4. Final presentation
+2. [Research Paper](literature/report.pdf)
+3. [Blog with development progress](http://course.ece.cmu.edu/~ece500/projects/f22-teama2/)
+4. [Final presentation](literature/finalPresentation.pdf)
 
 This project won Apple's best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, any one is welcome to make a pull request and we would love to include community contributions to this project.
 
@@ -28,7 +28,7 @@ This project dosen't require heavy compute. Thanks to our efforts in optimizing 
 
 The project has various constants to tune the various parts of the algorithms in the constants.py file. Anyone attempting this project should familiarize themselves with the contents of the files and what each of those constants do.
 
-## Setup & Materials Required
+## Setup and Materials Required
 
 The project requires both Python and C++. The path planner algorithms run in C++ and the rest of the code-base runs in Python. Pybind is used as a bridge between C++ and Python.
 
