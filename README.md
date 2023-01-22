@@ -4,11 +4,12 @@ This repo is the main software repo for the project
 
 # Table of Contents
 1. [Overview](#overview)
-2. [Setup & Materials Required](#setup & materials required)
-3. [Computer Vision](#computer vision)
+2. [Setup & Materials Required](#setup_materials)
+3. [Computer Vision](#computer_vision)
 4. [Controller](#controller)
 5. [Visualizer](#visualizer)
-6. [Future Work]
+6. [Motion Planner](#motion_planner)
+7. [Future Work] (#future_work)
 
 
 ## Overview
@@ -48,11 +49,11 @@ The controller's job is to interpolate the discrete steps outputed by the path p
 ## Visualizer
 The visualizer is a function within the computer vision part of the codebase. The visualizer will show the current pose of the robot, the control commands from the controller to close any error, and the paths outputed by the path planner for the robots. Do note that the visualizer is computationally expensive and disabling it does improve performance a little bit. However, the visualizer provided enough value to us that it was worth the slight performance hit we encountered.
 
+## Motion Planner
+The motion planner is the one part of the codebase that is written in C++, the implementation for it can be found within the src folder of the repo. The planner was implemented using a 4D state-space A* search and more information on its design can be found in our research paper
+
 ## Future Work
 
 As this project evolved over the course of our Capstone semester, we often had to pivot from our original approaches and rapid-prototype various approaches. In doing so, our pivots and experiments were often hacky/jank from a software engineering perspective. This has definately incured us technical debt and makes this codebase harder to read than it should be. Rather than not publish our code at all in the hopes of cleaning it up one day to publish, we decided to publish our code at the state that it's in to avoid the chance of never getting around to cleaning it up and sharing our work. We publish this codebase to serve as inspiration for anyone attempting this project, but if you do attempt to recreate this project or make something cooler, we enourage you to start from a clean codebase and approach the project with better software engineering principles. 
 
 The creators of this project will try our best to remain active and answer questions for anyone who tries to recreate this project or seek inspiration from it.
-
-In terms of future work that can be done, (TODO)
-
