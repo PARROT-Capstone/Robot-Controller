@@ -130,13 +130,14 @@ void TaskPlanner::assign_pallets_to_robots(std::vector<std::vector<double>> robo
 void TaskPlanner::unassign_pallet_from_robot(int robot_id)
 {
     // unassign the pallet from the robot
+    int pallet_id = this->task_assignments[robot_id];
     this->task_assignments[robot_id] = -1;
 
     // find the index of the pallet in the dropped off pallets vector
     int index = -1;
     for (int i = 0; i < this->dropped_off_pallets.size(); i++)
     {
-        if (this->dropped_off_pallets[i] == robot_id)
+        if (this->dropped_off_pallets[i] == pallet_id)
         {
             index = i;
             break;

@@ -207,9 +207,15 @@ if __name__ == '__main__':
                 
                 computerVision.cv_runLocalizer()
                 robotPoses, _ = computerVision.cv_GetRobotPositions()
+
+                # figure out which robots have non-empty paths
+                robotsWithPaths = []
+                for robotId in range(robotNumber):
+                    if len(paths[robotId]) > 0:
+                        robotsWithPaths.append(robotId)
                             
                 backupPaths = []
-                for robotId in range(robotNumber):
+                for robotId in robotsWithPaths:
                     startPoint = robotPoses[robotId]
                     startPoint[2] += math.pi
                     startPoint[2] = math.atan2(math.sin(startPoint[2]), math.cos(startPoint[2]))
