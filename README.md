@@ -19,8 +19,9 @@ Relevant links are linked below:
 1. Youtube Video
 2. Research Paper
 3. Blog with development progress
+4. Final presentation
 
-This project won the best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, any one is welcome to make a pull request and we would love to include community contributions to this project.
+This project won Apple's best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, any one is welcome to make a pull request and we would love to include community contributions to this project.
 
 This project dosen't require heavy compute. Thanks to our efforts in optimizing the algorithms and parallizing the sense-plan-act loop, the code-base runs well on low-end machines. We achieved ~15fps on a base model, fanless, 2020 MacBook Air that had to translate x86 instructions to ARM. Running on a well-specced 2019 16" MacBook Pro and 2019 XPS-15 didn't yield noticable improvements to performance. 
 
@@ -42,7 +43,10 @@ More details on the algorithmic design of the comptuer vision system can be foun
 
 ## Controller
 
+The controller's job is to interpolate the discrete steps outputed by the path planner into smooth continous time for the robots such that the controlelr can correct for errors regardless on where the robot is at any arbitary timestep. This is done with cubic hermite spine interpolation. One can find some helper diagrams, and simulation code in the controllerFragments folder of the repo
+
 ## Visualizer
+The visualizer is a function within the computer vision part of the codebase. The visualizer will show the current pose of the robot, the control commands from the controller to close any error, and the paths outputed by the path planner for the robots. Do note that the visualizer is computationally expensive and disabling it does improve performance a little bit. However, the visualizer provided enough value to us that it was worth the slight performance hit we encountered.
 
 ## Future Work
 
