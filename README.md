@@ -22,9 +22,9 @@ Relevant links are linked below:
 3. [Blog with development progress](http://course.ece.cmu.edu/~ece500/projects/f22-teama2/)
 4. [Final presentation](literature/finalPresentation.pdf)
 
-This project won Apple's best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, any one is welcome to make a pull request and we would love to include community contributions to this project.
+This project won Apple's best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, anyone is welcome to make a pull request and we would love to include community contributions to this project.
 
-This project dosen't require heavy compute. Thanks to our efforts in optimizing the algorithms and parallizing the sense-plan-act loop, the code-base runs well on low-end machines. We achieved ~15fps on a base model, fanless, 2020 MacBook Air that had to translate x86 instructions to ARM. Running on a well-specced 2019 16" MacBook Pro and 2019 XPS-15 didn't yield noticable improvements to performance. 
+This project dosen't require power compute. Thanks to our efforts in optimizing the algorithms and parallizing the sense-plan-act loop, the code-base runs well on low-end machines. We achieved ~15fps on a base model, fanless, 2020 MacBook Air that had to translate x86 instructions to ARM. Running on a well-specced 2019 16" MacBook Pro and 2019 XPS-15 didn't yield noticable improvements to performance. 
 
 The project has various constants to tune the various parts of the algorithms in the constants.py file. Anyone attempting this project should familiarize themselves with the contents of the files and what each of those constants do.
 
@@ -32,7 +32,7 @@ The project has various constants to tune the various parts of the algorithms in
 
 The project requires both Python and C++. The path planner algorithms run in C++ and the rest of the code-base runs in Python. Pybind is used as a bridge between C++ and Python.
 
-The various python dependancies/libraries that are required are included in the requirements.txt file (`pip3 install -r requirements.txt`) (TODO)
+One important note is that the codebase uses the opencv-contrib version of the opencv python libraries instead of the regular opencv.
 
 In terms of physical materials, one will need to either build robots per our open-source design or use off-the-shelf robots and modify the codebase to support it. One will also need to create ferous 'pallets' via some sort of sheet metal. Additionally, aruco markers will need to be printed and afixed to the robots and the ferous pallets.
 
