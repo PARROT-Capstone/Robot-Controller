@@ -17,7 +17,7 @@ This repo is the main software repo for the project
 This project was attempted for our ECE capstone 2022 at Carnegie Mellon by Saral Tayal, Prithu Pareek, and Omkar Savkur
 
 Relevant links are linked below: 
-1. Youtube Video
+1. [Youtube Video](https://youtu.be/t8D64Lbh2YY)
 2. [Research Paper](literature/report.pdf)
 3. [Blog with development progress](http://course.ece.cmu.edu/~ece500/projects/f22-teama2/)
 4. [Final presentation](literature/finalPresentation.pdf)
