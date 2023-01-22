@@ -21,6 +21,8 @@ Relevant links are linked below:
 2. [Research Paper](literature/report.pdf)
 3. [Blog with development progress](http://course.ece.cmu.edu/~ece500/projects/f22-teama2/)
 4. [Final presentation](literature/finalPresentation.pdf)
+5. [Robot PCB & Schematic Design Repo](https://github.com/PARROT-Capstone/Robot-Design)
+6. [Robot Firmware Repo](https://github.com/PARROT-Capstone/Robot-Firmware/blob/main/README.md)
 
 This project won Apple's best project award. Given that the members of the project have since graduated, the project will no longer be maintained by the original members, however, anyone is welcome to make a pull request and we would love to include community contributions to this project.
 
