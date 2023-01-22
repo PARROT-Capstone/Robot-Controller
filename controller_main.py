@@ -29,7 +29,7 @@ tagIndex = 4
 
 dt = 1e-6
 
-# Based on Mobile Robot Programming Lab and https://www.researchgate.net/profile/Muhammad-Asif-62/publication/266798448_20140930101805712/links/543cc55d0cf24ef33b7639cb/20140930101805712.pdf
+# Based on Mobile Robot Programming Lab (CMU course) and https://www.researchgate.net/profile/Muhammad-Asif-62/publication/266798448_20140930101805712/links/543cc55d0cf24ef33b7639cb/20140930101805712.pdf
 
 class Controller:
     def __init__(self, robotId, robotPath, forward=True):

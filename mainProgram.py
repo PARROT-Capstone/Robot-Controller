@@ -13,7 +13,6 @@ import os
 import cv2 as cv
 from multiprocessing import Process
 
-
 # cd build and make the c++ code
 os.system("cd build && make")
 
@@ -45,8 +44,11 @@ vizImage = [None]
 
 if __name__ == '__main__':
 
+    # The idea behind while true here is that we want the system to keep running till all the 
+    # tasks are done. So even if there are fewer robots than pallets, multiple planning loops 
+    # can occur till all the pallets are picked up and placed where they should be.
+
     while(True):
-            
         computerVision.cv_runLocalizer()
         robotPoses, robotfiducialIds = computerVision.cv_GetRobotPositions()
 
@@ -68,22 +70,6 @@ if __name__ == '__main__':
             print("Goal Pose: ", pose)
 
         paths = planner.Planner_GeneratePaths(map_size, robotPoses, palletPoses, goalPoses)
-        # firstPoint = robotPoses[0].copy()
-        # firstPoint.append(0)
-        # firstPoint.append(0)
-        # secondPoint = firstPoint.copy()
-        # secondPoint[0] += 200
-        # secondPoint[1] += 200
-        # secondPoint[2] -= math.pi/2
-        # secondPoint[3] += 15
-        # thirdPoint = secondPoint.copy()
-        # thirdPoint[2] += math.pi/2
-        # thirdPoint[3] += 3 # 30 degrees a second
-        # fourthPoint = thirdPoint.copy()
-        # fourthPoint[0] += 200
-        # fourthPoint[3] += 10 # correct speed
-
-        # paths = [np.array([firstPoint, secondPoint, thirdPoint, fourthPoint])]
 
         for path in paths:
             mainHelper.preconditionPath(path)
@@ -101,6 +87,9 @@ if __name__ == '__main__':
         robotNumber = len(paths)
         robotCommands = [(0,0,constants.ELECTROMAGNET_DONT_SEND) for _ in range(robotNumber)]
         sendCommands = np.zeros(robotNumber, dtype=bool)
+        
+        # TODO: this function should be moved to a different file
+        # This function is a threaded function and is responsible for sending commands to the robots
         def Main_RequestsThreading(robotId):
             fiducialId = robotfiducialIds[robotId]
             robotHwNumber = constants.ROBOT_HARDWARE_NUMBERS[constants.ROBOT_FIDUCIALS.index(fiducialId)]
@@ -114,12 +103,9 @@ if __name__ == '__main__':
                 velLeftAng = velLeftLinear / constants.wheel_radius
                 velRightAng = velRightLinear / constants.wheel_radius
                 electromagnet_command = robotCommands[robotId][2]
-
                 offset = 2
-
                 # convert angular velocity to pwm
                 scaleFactor = 7.5 # 1 PWM Duty Cycle = 7.5 mm/s
-
 
                 leftPWM = 90 + (velLeftAng * scaleFactor)
                 if velLeftAng > 0:
@@ -137,7 +123,6 @@ if __name__ == '__main__':
                 leftPWM = min(max(leftPWM, 90-25), 90+25)
                 rightPWM = min(max(rightPWM, 90-25), 90+25)
 
-                
                 if (electromagnet_command != constants.ELECTROMAGNET_DONT_SEND):
                     emJson = {"dtype": "pallet",
                             "power": (1 if electromagnet_command == constants.ELECTROMAGNET_ENABLE else 0)}
@@ -158,21 +143,8 @@ if __name__ == '__main__':
         controllers = [Controller(i, paths[i]) for i in range(robotNumber)]
         allControllersDone = True
 
-        # p = Process(target=cv_visualize_threaded, args=())
-        # mainPID = os.getpid()
-        # os.fork()
-        # print(os.getpid())
-        # if (os.getpid() != mainPID):
-        #     p.run()
-        # p.join()
-        # thread = threading.Thread(target=cv_visualize_threaded, args=())
-        # threads.append(thread)
-        # thread.start()
-    
-            
         # control loop
         while True:  
-            
             start = time.time()
             computerVision.cv_runLocalizer()
             robotPoses, _ = computerVision.cv_GetRobotPositions()
@@ -214,6 +186,8 @@ if __name__ == '__main__':
                     if len(paths[robotId]) > 0:
                         robotsWithPaths.append(robotId)
                             
+                # really jank approach to making the robots backup and rotate 
+                # after they drop off a pallet
                 backupPaths = []
                 for robotId in robotsWithPaths:
                     startPoint = robotPoses[robotId]
